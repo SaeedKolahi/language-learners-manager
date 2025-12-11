@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ورود - مدیریت زبان‌آموزان</title>
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirfont@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="assets/css/auth.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+</head>
+<body>
+  <div class="auth">
+    <h1>ورود</h1>
+    <p>با ایمیل و رمز عبور وارد شوید.</p>
+    <label>
+      ایمیل
+      <input type="email" id="auth-email" autocomplete="email" required placeholder="you@example.com" />
+    </label>
+    <label>
+      رمز عبور
+      <input type="password" id="auth-password" autocomplete="current-password" required placeholder="••••••••" />
+    </label>
+    <div class="actions">
+      <button class="btn-primary" id="btn-login">ورود</button>
+      <button class="btn-ghost hidden" id="btn-logout" type="button">خروج</button>
+    </div>
+    <div class="error" id="auth-error"></div>
+    <div class="success" id="auth-success"></div>
+  </div>
+  <script src="assets/js/auth.js"></script>
+</body>
+</html>

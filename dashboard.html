@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مدیریت زبان‌آموزان</title>
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirfont@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <h1>مدیریت زبان‌آموزان</h1>
+    <div class="header-actions">
+      <span id="today-date"></span>
+      <button class="btn-ghost" id="btn-logout">خروج</button>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="learners">زبان‌آموزان</button>
+    <button class="tab" data-tab="installments">لیست اقساط</button>
+    <button class="tab" data-tab="payments">لیست پرداخت‌ها</button>
+  </div>
+
+  <!-- Tab: Learners -->
+  <div class="tab-content active" id="tab-learners">
+    <div class="toolbar">
+      <button class="btn-primary" id="btn-add-learner">افزودن زبان‌آموز</button>
+      <div class="filter-group">
+        <label>جستجو:</label>
+        <input type="text" id="search-learners" placeholder="جستجوی نام..." style="width: 200px;">
+      </div>
+    </div>
+    <div class="table-container">
+      <table id="learners-table">
+        <thead>
+          <tr>
+            <th>نام</th>
+            <th>شماره تماس</th>
+            <th>تاریخ شروع</th>
+            <th>مبلغ کل</th>
+            <th>تعداد اقساط</th>
+            <th>مبلغ قسط</th>
+            <th>اقساط پرداختی</th>
+            <th>اقساط در انتظار</th>
+            <th>اقساط عقب مانده</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody id="learners-tbody">
+          <tr>
+            <td colspan="10" class="empty-state">
+              <p>هیچ زبان‌آموزی ثبت نشده است.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: Installments -->
+  <div class="tab-content" id="tab-installments">
+    <div class="toolbar">
+      <div class="filters">
+        <div class="filter-group">
+          <label>فیلتر:</label>
+          <select id="filter-status">
+            <option value="all">همه</option>
+            <option value="pending">در انتظار</option>
+            <option value="overdue">عقب مانده</option>
+            <option value="with-note">دارای توضیحات</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>جستجو:</label>
+          <input type="text" id="search-installments" placeholder="جستجوی نام..." style="width: 200px;">
+        </div>
+      </div>
+    </div>
+    <div class="table-container">
+      <table id="installments-table">
+        <thead>
+          <tr>
+            <th>نام</th>
+            <th>شماره تماس</th>
+            <th>مبلغ</th>
+            <th>تاریخ سررسید</th>
+            <th>روزهای باقیمانده</th>
+            <th>وضعیت</th>
+            <th>توضیحات</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody id="installments-tbody">
+          <tr>
+            <td colspan="8" class="empty-state">
+              <p>هیچ قسطی وجود ندارد.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: Payments -->
+  <div class="tab-content" id="tab-payments">
+    <div class="toolbar">
+      <div class="filter-group">
+        <label>جستجو:</label>
+        <input type="text" id="search-payments" placeholder="جستجوی نام..." style="width: 200px;">
+      </div>
+    </div>
+    <div class="table-container">
+      <table id="payments-table">
+        <thead>
+          <tr>
+            <th>نام</th>
+            <th>شماره تماس</th>
+            <th>مبلغ</th>
+            <th>تاریخ سررسید</th>
+            <th>تاریخ پرداخت</th>
+            <th>توضیحات</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody id="payments-tbody">
+          <tr>
+            <td colspan="7" class="empty-state">
+              <p>هیچ پرداختی ثبت نشده است.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal: Add/Edit Learner -->
+  <div class="modal" id="modal-learner">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-learner-title">افزودن زبان‌آموز</h2>
+        <button class="modal-close" data-modal="modal-learner">&times;</button>
+      </div>
+      <form id="form-learner">
+        <div class="form-group">
+          <label>نام زبان‌آموز *</label>
+          <input type="text" id="learner-name" required>
+        </div>
+        <div class="form-group">
+          <label>شماره تماس</label>
+          <input type="text" id="learner-phone" maxlength="11" pattern="[0-9]*">
+        </div>
+        <div class="form-group">
+          <label>سن</label>
+          <input type="text" id="learner-age">
+        </div>
+        <div class="form-group">
+          <label>سطح زبان</label>
+          <input type="text" id="learner-level">
+        </div>
+        <div class="form-group">
+          <label>هدف یادگیری</label>
+          <input type="text" id="learner-goal">
+        </div>
+        <div class="form-group">
+          <label>شغل/وضعیت تحصیلی</label>
+          <input type="text" id="learner-occupation">
+        </div>
+        <div class="form-group">
+          <label>توضیحات تکمیلی</label>
+          <textarea id="learner-notes"></textarea>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="learner-has-installment"> تقسیط دوره
+          </label>
+        </div>
+        <div id="installment-fields" style="display: none;">
+          <div class="form-group">
+            <label>تاریخ شروع (مثال: 1404/09/20) *</label>
+            <input type="text" id="learner-start-date" placeholder="1404/09/20">
+          </div>
+          <div class="form-group">
+            <label>مبلغ کل (تومان) *</label>
+            <input type="text" id="learner-total-amount" pattern="[0-9,]*">
+          </div>
+          <div class="form-group">
+            <label>تعداد اقساط *</label>
+            <input type="number" id="learner-installment-count" min="1">
+          </div>
+        </div>
+        <div class="toolbar" style="margin-top: 20px;">
+          <button type="submit" class="btn-primary">ذخیره</button>
+          <button type="button" class="btn-ghost" data-modal="modal-learner">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Payment -->
+  <div class="modal" id="modal-payment">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>ثبت پرداخت قسط</h2>
+        <button class="modal-close" data-modal="modal-payment">&times;</button>
+      </div>
+      <form id="form-payment">
+        <div class="form-group">
+          <label>زبان‌آموز</label>
+          <input type="text" id="payment-learner-name" readonly>
+        </div>
+        <div class="form-group">
+          <label>مبلغ</label>
+          <input type="text" id="payment-amount" readonly>
+        </div>
+        <div class="form-group">
+          <label>تاریخ سررسید</label>
+          <input type="text" id="payment-due-date" readonly>
+        </div>
+        <div class="form-group">
+          <label>تاریخ پرداخت (مثال: 1404/09/20)</label>
+          <input type="text" id="payment-date" placeholder="1404/09/20">
+        </div>
+        <div class="form-group">
+          <label>توضیحات</label>
+          <textarea id="payment-note"></textarea>
+        </div>
+        <div class="toolbar" style="margin-top: 20px;">
+          <button type="submit" class="btn-primary">ذخیره</button>
+          <button type="button" class="btn-ghost" data-modal="modal-payment">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Installment Note -->
+  <div class="modal" id="modal-installment-note">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>افزودن/ویرایش توضیحات قسط</h2>
+        <button class="modal-close" data-modal="modal-installment-note">&times;</button>
+      </div>
+      <form id="form-installment-note">
+        <div class="form-group">
+          <label>زبان‌آموز</label>
+          <input type="text" id="note-learner-name" readonly>
+        </div>
+        <div class="form-group">
+          <label>توضیحات</label>
+          <textarea id="note-text"></textarea>
+        </div>
+        <div class="toolbar" style="margin-top: 20px;">
+          <button type="submit" class="btn-primary">ذخیره</button>
+          <button type="button" class="btn-ghost" data-modal="modal-installment-note">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="assets/js/utils.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/learners.js"></script>
+  <script src="assets/js/installments.js"></script>
+</body>
+</html>
+
