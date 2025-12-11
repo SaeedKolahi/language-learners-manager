@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS learners (
   total_amount INTEGER,
   installment_count INTEGER,
   installment_amount INTEGER,
+  adjustment_history TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

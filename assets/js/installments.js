@@ -67,7 +67,13 @@ async function loadInstallmentForPayment(installmentId) {
   document.getElementById('payment-learner-name').value = data.learner_name || '';
   document.getElementById('payment-amount').value = formatNumber(data.amount || 0);
   document.getElementById('payment-due-date').value = formatDatePersian(data.due_date);
-  document.getElementById('payment-date').value = data.payment_date || '';
+  // Set today's date as default if payment_date is empty
+  if (data.payment_date) {
+    document.getElementById('payment-date').value = data.payment_date;
+  } else {
+    const today = new Date();
+    document.getElementById('payment-date').value = formatDatePersian(today.toISOString());
+  }
   document.getElementById('payment-note').value = data.payment_note || '';
 }
 
@@ -219,6 +225,15 @@ async function refreshInstallments() {
 
   // Filter and process installments
   const filtered = installments.filter(inst => {
+    const dueDate = new Date(inst.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    const days = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
+    
+    // Only show overdue installments or installments due within next 30 days
+    if (days > 30) {
+      return false;
+    }
+    
     // Search filter
     if (searchTerm && !inst.learner_name?.toLowerCase().includes(searchTerm)) {
       return false;
@@ -226,10 +241,6 @@ async function refreshInstallments() {
 
     // Status filter
     if (filterStatus === 'all') return true;
-    
-    const dueDate = new Date(inst.due_date);
-    dueDate.setHours(0, 0, 0, 0);
-    const days = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
     
     if (filterStatus === 'pending' && days >= 0) return true;
     if (filterStatus === 'overdue' && days < 0) return true;
@@ -269,15 +280,25 @@ async function refreshInstallments() {
       <td>${inst.phone || ''}</td>
       <td>${formatNumber(inst.amount || 0)}</td>
       <td>${formatDatePersian(inst.due_date)}</td>
-      <td>${typeof days === 'number' ? days : ''}</td>
+      <td>${formatDays(days)}</td>
       <td><span class="${statusClass}">${statusText}</span></td>
-      <td>${escapeHtml((inst.installment_note || '').substring(0, 50))}${inst.installment_note && inst.installment_note.length > 50 ? '...' : ''}</td>
+      <td class="note-cell" ${inst.installment_note && inst.installment_note.length > 50 ? `data-full-note="${escapeHtml(inst.installment_note).replace(/"/g, '&quot;')}" style="cursor: pointer; color: var(--accent-2); text-decoration: underline;"` : ''}>${escapeHtml((inst.installment_note || '').substring(0, 50))}${inst.installment_note && inst.installment_note.length > 50 ? '...' : ''}</td>
       <td>
         <button class="btn-primary" onclick="openPaymentModal('${inst.id}')" style="margin-left: 4px; font-size: 0.85rem; padding: 6px 10px;">پرداخت</button>
-        <button class="btn-ghost" onclick="openInstallmentNoteModal('${inst.id}')" style="margin-left: 4px; font-size: 0.85rem; padding: 6px 10px;">توضیحات</button>
+        <button class="btn-ghost" onclick="openInstallmentNoteModal('${inst.id}')" style="margin-left: 4px; font-size: 0.85rem; padding: 6px 10px;">${inst.installment_note ? 'ویرایش توضیحات' : 'ثبت توضیحات'}</button>
       </td>
     `;
     tbody.appendChild(row);
+  });
+  
+  // Add click listeners to note cells
+  document.querySelectorAll('.note-cell[data-full-note]').forEach(cell => {
+    cell.addEventListener('click', (e) => {
+      const fullNote = cell.getAttribute('data-full-note');
+      if (fullNote) {
+        showNoteTooltip(e, fullNote);
+      }
+    });
   });
 }
 
@@ -324,7 +345,7 @@ async function refreshPayments() {
       <td>${payment.phone || ''}</td>
       <td>${formatNumber(payment.amount || 0)}</td>
       <td>${formatDatePersian(payment.due_date)}</td>
-      <td>${payment.payment_date || ''}</td>
+      <td>${payment.payment_date ? formatDatePersian(payment.payment_date) : ''}</td>
       <td>${escapeHtml(payment.payment_note || '')}</td>
       <td>
         <button class="btn-danger" onclick="deletePayment('${payment.id}')" style="font-size: 0.85rem; padding: 6px 10px;">حذف</button>
@@ -334,10 +355,56 @@ async function refreshPayments() {
   });
 }
 
+// Show note tooltip
+function showNoteTooltip(event, noteText) {
+  console.log('showNoteTooltip called with:', noteText);
+  event.stopPropagation();
+  event.preventDefault();
+  
+  // Remove existing tooltip if any
+  const existingTooltip = document.getElementById('note-tooltip');
+  if (existingTooltip) {
+    existingTooltip.remove();
+    return;
+  }
+  
+  // Create tooltip
+  const tooltip = document.createElement('div');
+  tooltip.id = 'note-tooltip';
+  tooltip.className = 'note-tooltip';
+  tooltip.innerHTML = `
+    <div class="note-tooltip-content">
+      <div class="note-tooltip-header">
+        <span>توضیحات کامل</span>
+        <button class="note-tooltip-close" onclick="document.getElementById('note-tooltip').remove()">&times;</button>
+      </div>
+      <div class="note-tooltip-body">${escapeHtml(noteText)}</div>
+    </div>
+  `;
+  
+  document.body.appendChild(tooltip);
+  
+  // Position tooltip near the clicked element
+  const rect = event.target.getBoundingClientRect();
+  tooltip.style.top = `${rect.top + window.scrollY - 10}px`;
+  tooltip.style.right = `${window.innerWidth - rect.right}px`;
+  
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function closeTooltip(e) {
+      if (!tooltip.contains(e.target) && e.target !== event.target) {
+        tooltip.remove();
+        document.removeEventListener('click', closeTooltip);
+      }
+    });
+  }, 100);
+}
+
 // Make functions globally available
 window.openPaymentModal = openPaymentModal;
 window.openInstallmentNoteModal = openInstallmentNoteModal;
 window.deletePayment = deletePayment;
+window.showNoteTooltip = showNoteTooltip;
 window.refreshInstallments = refreshInstallments;
 window.refreshPayments = refreshPayments;
 
