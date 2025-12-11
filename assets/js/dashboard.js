@@ -7,6 +7,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Get user data and display greeting
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    // Load user profile from database
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('name')
+      .eq('user_id', user.id)
+      .single();
+    
+    const userName = userProfile?.name || user.email?.split('@')[0] || 'کاربر';
+    const greetingEl = document.getElementById('user-greeting');
+    if (greetingEl) {
+      greetingEl.textContent = `سلام ${userName}👋`;
+    }
+  }
+
   // Set today's date
   const today = new Date();
   const todayStr = formatDatePersian(today.toISOString());

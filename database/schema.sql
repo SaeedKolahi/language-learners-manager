@@ -4,6 +4,15 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Table: user_profiles
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Table: learners
 CREATE TABLE IF NOT EXISTS learners (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -45,6 +54,7 @@ CREATE TABLE IF NOT EXISTS installments (
 );
 
 -- Create indexes
+CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_learners_user_id ON learners(user_id);
 CREATE INDEX IF NOT EXISTS idx_installments_user_id ON installments(user_id);
 CREATE INDEX IF NOT EXISTS idx_installments_learner_id ON installments(learner_id);
@@ -52,8 +62,22 @@ CREATE INDEX IF NOT EXISTS idx_installments_due_date ON installments(due_date);
 CREATE INDEX IF NOT EXISTS idx_installments_status ON installments(status);
 
 -- Enable Row Level Security
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE learners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE installments ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for user_profiles
+CREATE POLICY "user_profiles_select_own" ON user_profiles
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "user_profiles_insert_own" ON user_profiles
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "user_profiles_update_own" ON user_profiles
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "user_profiles_delete_own" ON user_profiles
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- RLS Policies for learners
 CREATE POLICY "learners_select_own" ON learners
@@ -98,6 +122,11 @@ CREATE TRIGGER update_learners_updated_at
 
 CREATE TRIGGER update_installments_updated_at
   BEFORE UPDATE ON installments
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_profiles_updated_at
+  BEFORE UPDATE ON user_profiles
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
