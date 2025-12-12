@@ -264,7 +264,7 @@ async function refreshInstallments() {
     let rowClass = 'row-pending';
     
     if (days < 0) {
-      statusText = 'عقب مانده';
+      statusText = 'عقب افتاده';
       statusClass = 'status-overdue';
       rowClass = 'row-overdue';
     }

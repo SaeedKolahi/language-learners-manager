@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>مدیریت زبان‌آموزان</title>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirfont@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker@latest/dist/jalalidatepicker.min.css">
   <link rel="stylesheet" href="assets/css/dashboard.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker@latest/dist/jalalidatepicker.min.js"></script>
 </head>
 <body>
   <!-- Header -->
@@ -27,6 +29,7 @@
     <button class="tab active" data-tab="learners">زبان‌آموزان</button>
     <button class="tab" data-tab="installments">لیست اقساط</button>
     <button class="tab" data-tab="payments">لیست پرداخت‌ها</button>
+    <button class="tab" data-tab="reminders">یادآورها</button>
   </div>
 
   <!-- Tab: Learners -->
@@ -62,7 +65,7 @@
             <th>مبلغ قسط</th>
             <th>اقساط پرداختی</th>
             <th>اقساط در انتظار</th>
-            <th>اقساط عقب مانده</th>
+            <th>اقساط عقب افتاده</th>
             <th>وضعیت</th>
             <th>عملیات</th>
           </tr>
@@ -87,7 +90,7 @@
           <select id="filter-status">
             <option value="all">همه</option>
             <option value="pending">در انتظار</option>
-            <option value="overdue">عقب مانده</option>
+            <option value="overdue">عقب افتاده</option>
             <option value="with-note">دارای توضیحات</option>
           </select>
         </div>
@@ -147,6 +150,41 @@
           <tr>
             <td colspan="7" class="empty-state">
               <p>هیچ پرداختی ثبت نشده است.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: Reminders -->
+  <div class="tab-content" id="tab-reminders">
+    <div class="toolbar">
+      <div class="filter-group">
+        <label>فیلتر:</label>
+        <select id="filter-reminders">
+          <option value="all">همه</option>
+          <option value="today">امروز</option>
+          <option value="completed">تکمیل شده</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-container">
+      <table id="reminders-table">
+        <thead>
+          <tr>
+            <th>زبان‌آموز</th>
+            <th>شماره تماس</th>
+            <th>تاریخ و ساعت</th>
+            <th>توضیحات</th>
+            <th>وضعیت</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody id="reminders-tbody">
+          <tr>
+            <td colspan="6" class="empty-state">
+              <p>هیچ یادآوری ثبت نشده است.</p>
             </td>
           </tr>
         </tbody>
@@ -263,6 +301,38 @@
     </div>
   </div>
 
+  <!-- Modal: Reminder -->
+  <div class="modal" id="modal-reminder">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>افزودن یادآور</h2>
+        <button class="modal-close" data-modal="modal-reminder">&times;</button>
+      </div>
+      <form id="form-reminder">
+        <div class="form-group">
+          <label>زبان‌آموز</label>
+          <input type="text" id="reminder-learner-name" readonly>
+        </div>
+        <div class="form-group">
+          <label>تاریخ یادآور</label>
+          <input type="text" id="reminder-date" data-jdp data-jdp-min-date="today" placeholder="مثال: 1404/10/01" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>ساعت یادآور</label>
+          <input type="time" id="reminder-time">
+        </div>
+        <div class="form-group">
+          <label>توضیحات (اختیاری)</label>
+          <textarea id="reminder-description"></textarea>
+        </div>
+        <div class="toolbar" style="margin-top: 20px;">
+          <button type="submit" class="btn-primary">ذخیره یادآور</button>
+          <button type="button" class="btn-ghost" data-modal="modal-reminder">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal: Installment Note -->
   <div class="modal" id="modal-installment-note">
     <div class="modal-content">
@@ -304,6 +374,7 @@
   <script src="assets/js/dashboard.js"></script>
   <script src="assets/js/learners.js"></script>
   <script src="assets/js/installments.js"></script>
+  <script src="assets/js/reminders.js"></script>
 </body>
 </html>
 

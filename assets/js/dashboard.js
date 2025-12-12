@@ -13,14 +13,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load user profile from database
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('name')
+      .select('name, chat_id, telegram_token')
       .eq('user_id', user.id)
       .single();
+    
+    window.userProfile = {
+      name: userProfile?.name,
+      chatId: userProfile?.chat_id || null,
+      telegramToken: userProfile?.telegram_token || null
+    };
     
     const userName = userProfile?.name || user.email?.split('@')[0] || 'کاربر';
     const greetingEl = document.getElementById('user-greeting');
     if (greetingEl) {
-      greetingEl.textContent = `سلام ${userName} !👋`;
+      greetingEl.textContent = `سلام ${userName}!👋`;
     }
   }
 
@@ -67,6 +73,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.refreshInstallments) window.refreshInstallments();
       } else if (targetTab === 'payments') {
         if (window.refreshPayments) window.refreshPayments();
+      } else if (targetTab === 'reminders') {
+        if (window.refreshReminders) window.refreshReminders();
       }
     });
   });
@@ -100,5 +108,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.refreshLearners) window.refreshLearners();
   if (window.refreshInstallments) window.refreshInstallments();
   if (window.refreshPayments) window.refreshPayments();
+  if (window.refreshReminders) window.refreshReminders();
+
+  // Init Jalali datepicker watcher
+  if (window.jalaliDatepicker) {
+    window.jalaliDatepicker.startWatch();
+  }
 });
 

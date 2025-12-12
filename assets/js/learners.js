@@ -1,5 +1,8 @@
 // Learners Management
 let currentLearnerId = null;
+let currentReminderLearnerId = null;
+let currentReminderLearnerName = '';
+let currentReminderId = null;
 
 // Toggle installment fields
 document.addEventListener('DOMContentLoaded', () => {
@@ -63,6 +66,15 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         e.target.value = '';
       }
+    });
+  }
+
+  // Reminder form submit
+  const reminderForm = document.getElementById('form-reminder');
+  if (reminderForm) {
+    reminderForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await saveReminder();
     });
   }
 });
@@ -358,6 +370,9 @@ async function saveLearner() {
         .eq('id', currentLearnerId);
       
       if (error) throw error;
+
+      // Sync reminder learner name
+      await syncReminderLearnerName(currentLearnerId, name);
       
       showToast('زبان‌آموز ویرایش شد', 'success');
     } else {
@@ -665,6 +680,22 @@ async function updateInstallments(learnerId, learnerName, phone, count, amount, 
   return adjustmentHistory || startDateHistory;
 }
 
+// Sync reminder learner names after edit
+async function syncReminderLearnerName(learnerId, name) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  try {
+    await supabase
+      .from('reminders')
+      .update({ learner_name: name })
+      .eq('learner_id', learnerId)
+      .eq('user_id', user.id);
+  } catch (err) {
+    console.error('Error syncing reminder learner name', err);
+  }
+}
+
 // Refresh learners table
 async function refreshLearners() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -750,6 +781,7 @@ async function refreshLearners() {
       <td>${learner.has_installment ? toPersianDigits(overdueCount) : ''}</td>
       <td>${statusDisplay}</td>
       <td>
+        <button class="btn-primary" onclick="openReminderModal('${learner.id}', '${escapeHtml(learner.name)}')" style="margin-left: 4px; font-size: 0.85rem; padding: 6px 10px;">افزودن یادآور</button>
         <button class="btn-primary" onclick="showLearnerDetails('${learner.id}')" style="margin-left: 4px; font-size: 0.85rem; padding: 6px 10px;">جزئیات</button>
         <button class="btn-ghost" onclick="openLearnerModal('${learner.id}')" style="margin-left: 4px;">ویرایش</button>
         <button class="btn-danger" onclick="deleteLearner('${learner.id}', '${escapeHtml(learner.name)}')" style="margin-left: 4px;">حذف</button>
@@ -888,7 +920,7 @@ async function showLearnerDetails(learnerId) {
         html += '<div style="display: flex; flex-wrap: wrap; gap: 15px 25px; margin-bottom: 20px; font-size: 0.9rem;">';
         html += `<span><strong>اقساط پرداخت شده:</strong> ${toPersianDigits(paidCount)} قسط (${totalPaidAmount > 0 ? formatNumber(totalPaidAmount) + ' تومان' : '0 تومان'})</span>`;
         html += `<span><strong>اقساط در انتظار:</strong> ${toPersianDigits(pendingCount)} قسط (${pendingCount > 0 ? formatNumber(totalPendingAmount) + ' تومان' : '0 تومان'})</span>`;
-        html += `<span><strong>اقساط عقب مانده:</strong> ${toPersianDigits(overdueCount)} قسط (${overdueCount > 0 ? formatNumber(totalOverdueAmount) + ' تومان' : '0 تومان'})</span>`;
+        html += `<span><strong>اقساط عقب افتاده:</strong> ${toPersianDigits(overdueCount)} قسط (${overdueCount > 0 ? formatNumber(totalOverdueAmount) + ' تومان' : '0 تومان'})</span>`;
         html += `<span><strong>مبلغ کل پرداخت شده:</strong> ${formatNumber(totalPaidAmount)} تومان</span>`;
         html += `<span><strong>مبلغ کل باقیمانده:</strong> ${formatNumber(totalRemainingAmount)} تومان</span>`;
         html += '</div>';
@@ -922,10 +954,11 @@ async function showLearnerDetails(learnerId) {
             const days = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
             
             if (days < 0) {
-              statusText = 'عقب مانده';
+              statusText = 'عقب افتاده';
               statusStyle = 'color: var(--danger);';
             } else {
               statusText = 'در انتظار';
+              statusStyle = 'color: var(--pending);';
             }
           }
           
@@ -968,4 +1001,162 @@ window.openLearnerModal = openLearnerModal;
 window.deleteLearner = deleteLearner;
 window.refreshLearners = refreshLearners;
 window.showLearnerDetails = showLearnerDetails;
+window.openReminderModal = openReminderModal;
+
+// Open reminder modal
+function openReminderModal(learnerId, learnerName, reminder = null) {
+  currentReminderLearnerId = learnerId;
+  currentReminderLearnerName = learnerName;
+  currentReminderId = reminder?.id || null;
+
+  const modal = document.getElementById('modal-reminder');
+  document.getElementById('reminder-learner-name').value = learnerName;
+
+  if (reminder) {
+    const dt = new Date(reminder.reminder_at);
+    const dateStr = formatDatePersian(reminder.reminder_at);
+    const timeStr = `${dt.getHours().toString().padStart(2, '0')}:${dt.getMinutes().toString().padStart(2, '0')}`;
+    document.getElementById('reminder-date').value = dateStr;
+    document.getElementById('reminder-time').value = timeStr; // keep English digits for time input
+    document.getElementById('reminder-description').value = reminder.description || '';
+  } else {
+    document.getElementById('reminder-date').value = '';
+    document.getElementById('reminder-time').value = '';
+    document.getElementById('reminder-description').value = '';
+  }
+  modal.classList.add('active');
+}
+
+// Save reminder (create or update)
+async function saveReminder() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !currentReminderLearnerId) return;
+
+  const dateStr = document.getElementById('reminder-date').value.trim();
+  const timeStr = document.getElementById('reminder-time').value.trim();
+  const desc = document.getElementById('reminder-description').value.trim();
+
+  if (!dateStr) {
+    showToast('تاریخ یادآور را وارد کنید', 'error');
+    return;
+  }
+  if (!timeStr) {
+    showToast('ساعت یادآور را وارد کنید', 'error');
+    return;
+  }
+
+  const baseDateIso = parseDate(dateStr);
+  if (!baseDateIso) {
+    showToast('فرمت تاریخ صحیح نیست', 'error');
+    return;
+  }
+
+  const timeEnglish = toEnglishDigits(timeStr);
+  const timeParts = timeEnglish.split(':');
+  if (timeParts.length !== 2) {
+    showToast('فرمت ساعت صحیح نیست', 'error');
+    return;
+  }
+  const hours = parseInt(timeParts[0], 10);
+  const minutes = parseInt(timeParts[1], 10);
+  if (isNaN(hours) || isNaN(minutes) || hours > 23 || minutes > 59 || hours < 0 || minutes < 0) {
+    showToast('فرمت ساعت صحیح نیست', 'error');
+    return;
+  }
+
+  const reminderDate = new Date(baseDateIso);
+  reminderDate.setHours(hours, minutes, 0, 0);
+
+  try {
+    if (currentReminderId) {
+      const { error } = await supabase
+        .from('reminders')
+        .update({
+          reminder_at: reminderDate.toISOString(),
+          description: desc || null,
+          sent: false,
+          sent_at: null,
+          completed: false,
+          completed_at: null
+        })
+        .eq('id', currentReminderId)
+        .eq('user_id', user.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('reminders')
+        .insert({
+          user_id: user.id,
+          learner_id: currentReminderLearnerId,
+          learner_name: currentReminderLearnerName,
+          reminder_at: reminderDate.toISOString(),
+          description: desc || null,
+          sent: false,
+          completed: false
+        });
+      if (error) throw error;
+    }
+
+    document.getElementById('modal-reminder').classList.remove('active');
+    showToast('یادآور ذخیره شد', 'success');
+    if (window.refreshReminders) window.refreshReminders();
+  } catch (error) {
+    showToast(error.message || 'خطا در ذخیره یادآور', 'error');
+  }
+}
+
+// Send due reminders to Telegram (client-side polling)
+let reminderSendInProgress = false;
+async function processDueReminders() {
+  if (reminderSendInProgress) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const chatId = window.userProfile?.chatId;
+  const token = window.userProfile?.telegramToken;
+  if (!chatId || !token) return;
+
+  reminderSendInProgress = true;
+  try {
+    const nowIso = new Date().toISOString();
+    const { data: reminders, error } = await supabase
+      .from('reminders')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('sent', false)
+      .eq('completed', false)
+      .lte('reminder_at', nowIso)
+      .order('reminder_at', { ascending: true });
+
+    if (error || !reminders || reminders.length === 0) {
+      reminderSendInProgress = false;
+      return;
+    }
+
+    for (const reminder of reminders) {
+      const reminderText = `⏰ یادآور زبان‌آموز\nنام: ${reminder.learner_name}\nزمان: ${formatDatePersian(reminder.reminder_at)} ${new Date(reminder.reminder_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}${reminder.description ? `\nتوضیحات: ${reminder.description}` : ''}`;
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: reminderText
+        })
+      });
+
+      if (res.ok) {
+        await supabase
+          .from('reminders')
+          .update({ sent: true, sent_at: new Date().toISOString() })
+          .eq('id', reminder.id);
+      }
+    }
+  } catch (err) {
+    console.error('reminder send error', err);
+  } finally {
+    reminderSendInProgress = false;
+  }
+}
+
+setInterval(processDueReminders, 60000);
 
