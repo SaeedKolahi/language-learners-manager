@@ -108,6 +108,7 @@ body {
   margin-bottom: 16px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
 }
 
 /* Buttons */
@@ -271,6 +272,42 @@ td a[href^="tel:"]:hover {
 .status-paid {
   background: var(--paid);
   color: #000;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-sold {
+  background: #2ea043;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-about-to-buy {
+  background: #58a6ff;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-needs-followup {
+  background: #fbbf24;
+  color: #000;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-cancelled {
+  background: #f85149;
+  color: #fff;
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 0.85rem;

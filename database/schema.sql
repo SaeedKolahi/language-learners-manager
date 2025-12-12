@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS learners (
   goal TEXT,
   occupation TEXT,
   notes TEXT,
+  status TEXT,
   has_installment BOOLEAN NOT NULL DEFAULT false,
   start_date TIMESTAMPTZ,
   total_amount INTEGER,
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS installments (
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_learners_user_id ON learners(user_id);
+CREATE INDEX IF NOT EXISTS idx_learners_status ON learners(status);
 CREATE INDEX IF NOT EXISTS idx_installments_user_id ON installments(user_id);
 CREATE INDEX IF NOT EXISTS idx_installments_learner_id ON installments(learner_id);
 CREATE INDEX IF NOT EXISTS idx_installments_due_date ON installments(due_date);

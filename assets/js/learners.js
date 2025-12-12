@@ -41,6 +41,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Filter learners by status
+  const filterStatus = document.getElementById('filter-learner-status');
+  if (filterStatus) {
+    filterStatus.addEventListener('change', () => {
+      refreshLearners();
+    });
+  }
+
   // Format total amount input with thousand separators
   const totalAmountInput = document.getElementById('learner-total-amount');
   if (totalAmountInput) {
@@ -83,6 +91,7 @@ function openLearnerModal(learnerId = null) {
     form.reset();
     document.getElementById('learner-has-installment').checked = false;
     document.getElementById('installment-fields').style.display = 'none';
+    document.getElementById('learner-status').value = '';
   }
   
   modal.classList.add('active');
@@ -108,6 +117,7 @@ async function loadLearnerData(learnerId) {
   document.getElementById('learner-goal').value = data.goal || '';
   document.getElementById('learner-occupation').value = data.occupation || '';
   document.getElementById('learner-notes').value = data.notes || '';
+  document.getElementById('learner-status').value = data.status || '';
   
   const hasInstallment = data.has_installment || false;
   document.getElementById('learner-has-installment').checked = hasInstallment;
@@ -204,6 +214,7 @@ async function saveLearner() {
     goal: document.getElementById('learner-goal').value.trim() || null,
     occupation: document.getElementById('learner-occupation').value.trim() || null,
     notes: document.getElementById('learner-notes').value.trim() || null,
+    status: document.getElementById('learner-status').value || null,
     has_installment: hasInstallment,
     start_date: startDate,
     total_amount: hasInstallment ? totalAmount : null,
@@ -660,6 +671,7 @@ async function refreshLearners() {
   if (!user) return;
 
   const searchTerm = document.getElementById('search-learners')?.value.toLowerCase() || '';
+  const filterStatus = document.getElementById('filter-learner-status')?.value || 'all';
   
   const { data: learners, error } = await supabase
     .from('learners')
@@ -678,7 +690,7 @@ async function refreshLearners() {
   tbody.innerHTML = '';
 
   if (!learners || learners.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><p>هیچ زبان‌آموزی ثبت نشده است.</p></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-state"><p>هیچ زبان‌آموزی ثبت نشده است.</p></td></tr>';
     return;
   }
 
@@ -693,6 +705,10 @@ async function refreshLearners() {
 
   learners.forEach(learner => {
     if (searchTerm && !learner.name.toLowerCase().includes(searchTerm)) {
+      return;
+    }
+
+    if (filterStatus !== 'all' && learner.status !== filterStatus) {
       return;
     }
 
@@ -718,6 +734,9 @@ async function refreshLearners() {
       });
     }
 
+    const status = learner.status || '';
+    const statusDisplay = status ? `<span class="${getStatusClass(status)}">${escapeHtml(status)}</span>` : '';
+    
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${escapeHtml(learner.name)}</td>
@@ -729,6 +748,7 @@ async function refreshLearners() {
       <td>${learner.has_installment ? toPersianDigits(paidCount) : ''}</td>
       <td>${learner.has_installment ? toPersianDigits(pendingCount) : ''}</td>
       <td>${learner.has_installment ? toPersianDigits(overdueCount) : ''}</td>
+      <td>${statusDisplay}</td>
       <td>
         <button class="btn-primary" onclick="showLearnerDetails('${learner.id}')" style="margin-left: 4px; font-size: 0.85rem; padding: 6px 10px;">جزئیات</button>
         <button class="btn-ghost" onclick="openLearnerModal('${learner.id}')" style="margin-left: 4px;">ویرایش</button>
@@ -737,6 +757,22 @@ async function refreshLearners() {
     `;
     tbody.appendChild(row);
   });
+}
+
+// Get status CSS class
+function getStatusClass(status) {
+  switch(status) {
+    case 'فروش رفته':
+      return 'status-sold';
+    case 'در شرف خرید':
+      return 'status-about-to-buy';
+    case 'نیاز به پیگیری':
+      return 'status-needs-followup';
+    case 'انصراف داده':
+      return 'status-cancelled';
+    default:
+      return 'status-needs-followup';
+  }
 }
 
 // Delete learner
@@ -797,6 +833,9 @@ async function showLearnerDetails(learnerId) {
     html += `<div><strong>سطح زبان:</strong></div><div>${learner.level || '-'}</div>`;
     html += `<div><strong>هدف یادگیری:</strong></div><div>${learner.goal || '-'}</div>`;
     html += `<div><strong>شغل/وضعیت تحصیلی:</strong></div><div>${learner.occupation || '-'}</div>`;
+    if (learner.status) {
+      html += `<div><strong>وضعیت:</strong></div><div><span class="${getStatusClass(learner.status)}">${escapeHtml(learner.status)}</span></div>`;
+    }
     if (learner.notes) {
       html += `<div><strong>توضیحات تکمیلی:</strong></div><div>${escapeHtml(learner.notes)}</div>`;
     }

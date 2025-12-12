@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userName = userProfile?.name || user.email?.split('@')[0] || 'کاربر';
     const greetingEl = document.getElementById('user-greeting');
     if (greetingEl) {
-      greetingEl.textContent = `سلام ${userName}👋`;
+      greetingEl.textContent = `سلام ${userName} !👋`;
     }
   }
 
