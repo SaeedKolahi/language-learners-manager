@@ -71,12 +71,8 @@ async function refreshReminders() {
       statusClass = 'status-overdue';
     }
 
-    const rawSendError = (window.reminderSendErrors || {})[rem.id];
-    const isPastDueUnsent = !rem.sent && dt < now;
-    const sendErrorMessage = rawSendError || (isPastDueUnsent ? 'از زمان یادآور گذشته ولی پیام ارسال نشده است.' : null);
-    const sendStatusText = sendErrorMessage ? 'خطا در ارسال' : (rem.sent ? 'ارسال شده' : 'ارسال نشده');
-    const sendStatusClass = sendErrorMessage ? 'status-overdue' : (rem.sent ? 'status-about-to-buy' : 'status-pending');
-    const sendErrorEscaped = sendErrorMessage ? sendErrorMessage.replace(/'/g, "\\'").replace(/"/g, '&quot;') : '';
+    const sendStatusText = rem.sent ? 'ارسال شده' : 'ارسال نشده';
+    const sendStatusClass = rem.sent ? 'status-about-to-buy' : 'status-pending';
 
     const displayName = nameMap[rem.learner_id] || rem.learner_name || '';
     const phone = phoneMap[rem.learner_id] || '';
@@ -92,9 +88,7 @@ async function refreshReminders() {
       <td>${dateStr} ${timeStr}</td>
       <td class="note-cell" ${hasMore ? `data-full-note="${escapedFullDesc.replace(/"/g, '&quot;')}" style="cursor: pointer; color: var(--accent-2); text-decoration: underline;"` : ''}>${hasMore ? `${shortDesc}...` : shortDesc}</td>
       <td><span class="${statusClass}">${statusText}</span></td>
-      <td>
-        <span class="${sendStatusClass}" ${sendErrorMessage ? `style="cursor:pointer;text-decoration:underline;" onclick="showSendErrorMsg('${sendErrorEscaped}')"` : ''}>${sendStatusText}</span>
-      </td>
+      <td><span class="${sendStatusClass}">${sendStatusText}</span></td>
       <td>
         <button class="btn-ghost" onclick="openReminderModal('${rem.learner_id}', '${escapeHtml(displayName)}', ${serializeReminder({ ...rem, learner_name: displayName })})" style="margin-left: 4px;">پیگیری مجدد</button>
         ${rem.completed ? '' : `<button class="btn-primary" onclick="markReminderCompleted('${rem.id}')" style="margin-left: 4px;">تکمیل شد</button>`}
@@ -155,22 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-function showSendError(reminderId) {
-  const err = (window.reminderSendErrors || {})[reminderId];
-  if (err) {
-    alert(err);
-  } else {
-    alert('خطای ارسال یافت نشد.');
-  }
-}
-
-function showSendErrorMsg(msg) {
-  alert(msg || 'خطای ارسال یافت نشد.');
-}
-
 // Expose
 window.refreshReminders = refreshReminders;
 window.markReminderCompleted = markReminderCompleted;
-window.showSendError = showSendError;
-window.showSendErrorMsg = showSendErrorMsg;
 
