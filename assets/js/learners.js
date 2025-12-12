@@ -3,6 +3,12 @@ let currentLearnerId = null;
 let currentReminderLearnerId = null;
 let currentReminderLearnerName = '';
 let currentReminderId = null;
+let currentEditInstallmentsLearnerId = null;
+let currentEditInstallments = [];
+let openActionsMenuId = null;
+let currentEditTotalAmount = 0;
+let currentEditPaidSum = 0;
+let manualEditedInstallments = new Set();
 
 // Toggle installment fields
 document.addEventListener('DOMContentLoaded', () => {
@@ -75,6 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
     reminderForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       await saveReminder();
+    });
+  }
+
+  const saveEditInstallmentsBtn = document.getElementById('btn-save-installments');
+  if (saveEditInstallmentsBtn) {
+    saveEditInstallmentsBtn.addEventListener('click', async () => {
+      await saveEditableInstallments();
     });
   }
 });
@@ -768,6 +781,8 @@ async function refreshLearners() {
     const status = learner.status || '';
     const statusDisplay = status ? `<span class="${getStatusClass(status)}">${escapeHtml(status)}</span>` : '';
     
+    const safeName = JSON.stringify(learner.name || '').replace(/"/g, '&quot;');
+    const actionsMenuId = `learner-actions-${learner.id}`;
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${escapeHtml(learner.name)}</td>
@@ -780,16 +795,58 @@ async function refreshLearners() {
       <td>${learner.has_installment ? toPersianDigits(pendingCount) : ''}</td>
       <td>${learner.has_installment ? toPersianDigits(overdueCount) : ''}</td>
       <td>${statusDisplay}</td>
-      <td>
-        <button class="btn-primary" onclick="openReminderModal('${learner.id}', '${escapeHtml(learner.name)}')" style="margin-left: 4px; font-size: 0.85rem; padding: 6px 10px;">افزودن یادآور</button>
-        <button class="btn-primary" onclick="showLearnerDetails('${learner.id}')" style="margin-left: 4px; font-size: 0.85rem; padding: 6px 10px;">جزئیات</button>
-        <button class="btn-ghost" onclick="openLearnerModal('${learner.id}')" style="margin-left: 4px;">ویرایش</button>
-        <button class="btn-danger" onclick="deleteLearner('${learner.id}', '${escapeHtml(learner.name)}')" style="margin-left: 4px;">حذف</button>
+      <td class="actions-cell">
+        <div class="action-dropdown">
+          <button class="btn-ghost action-toggle" onclick="toggleLearnerActions('${learner.id}')">عملیات ▾</button>
+          <div class="action-menu" id="${actionsMenuId}">
+            <button onclick="openReminderModal('${learner.id}', ${safeName})">افزودن یادآور</button>
+            <button onclick="showLearnerDetails('${learner.id}')">نمایش جزئیات زبان‌آموز</button>
+            <button onclick="openLearnerModal('${learner.id}')">ویرایش زبان‌آموز</button>
+            ${learner.has_installment ? `<button onclick="openEditInstallmentsModal('${learner.id}', ${safeName})">ویرایش اقساط</button>` : ''}
+            <button class="danger" onclick="deleteLearner('${learner.id}', ${safeName})">حذف</button>
+          </div>
+        </div>
       </td>
     `;
     tbody.appendChild(row);
   });
 }
+
+// Toggle actions dropdown for learners table
+function toggleLearnerActions(learnerId) {
+  const menuId = `learner-actions-${learnerId}`;
+  const menu = document.getElementById(menuId);
+  if (!menu) return;
+
+  if (openActionsMenuId && openActionsMenuId !== learnerId) {
+    closeLearnerActionsMenu(openActionsMenuId);
+  }
+
+  const isOpen = menu.classList.contains('open');
+  if (isOpen) {
+    menu.classList.remove('open');
+    openActionsMenuId = null;
+  } else {
+    menu.classList.add('open');
+    openActionsMenuId = learnerId;
+  }
+}
+
+function closeLearnerActionsMenu(learnerId) {
+  const menu = document.getElementById(`learner-actions-${learnerId}`);
+  if (menu) {
+    menu.classList.remove('open');
+  }
+  openActionsMenuId = null;
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.action-dropdown')) {
+    if (openActionsMenuId) {
+      closeLearnerActionsMenu(openActionsMenuId);
+    }
+  }
+});
 
 // Get status CSS class
 function getStatusClass(status) {
@@ -996,12 +1053,251 @@ async function showLearnerDetails(learnerId) {
   }
 }
 
+// Open edit installments modal (manual amount change for unpaid installments)
+async function openEditInstallmentsModal(learnerId, learnerName) {
+  currentEditInstallmentsLearnerId = learnerId;
+  currentEditInstallments = [];
+  manualEditedInstallments = new Set();
+  currentEditTotalAmount = 0;
+  currentEditPaidSum = 0;
+
+  const titleEl = document.getElementById('edit-installments-title');
+  if (titleEl) {
+    titleEl.textContent = `ویرایش اقساط: ${learnerName}`;
+  }
+
+  const contentEl = document.getElementById('edit-installments-content');
+  if (!contentEl) return;
+
+  contentEl.innerHTML = '<p class="text-muted">در حال بارگذاری...</p>';
+  document.getElementById('modal-edit-installments')?.classList.add('active');
+
+  const [{ data: installments, error }, { data: learnerData }] = await Promise.all([
+    supabase
+      .from('installments')
+      .select('*')
+      .eq('learner_id', learnerId)
+      .order('installment_number', { ascending: true }),
+    supabase
+      .from('learners')
+      .select('total_amount')
+      .eq('id', learnerId)
+      .single()
+  ]);
+
+  if (error) {
+    showToast('خطا در بارگذاری اقساط', 'error');
+    contentEl.innerHTML = '<p class="text-danger">بارگذاری اقساط با خطا مواجه شد.</p>';
+    return;
+  }
+
+  if (!installments || installments.length === 0) {
+    contentEl.innerHTML = '<p class="text-muted">قسط پرداخت‌نشده‌ای برای ویرایش وجود ندارد.</p>';
+    return;
+  }
+
+  currentEditInstallments = installments;
+  currentEditTotalAmount = learnerData?.total_amount || 0;
+  currentEditPaidSum = installments
+    .filter(inst => inst.status === 'پرداخت شده')
+    .reduce((sum, inst) => sum + (inst.amount || 0), 0);
+
+  const rowsHtml = installments.map(inst => {
+    const dueDate = new Date(inst.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let statusText = 'در انتظار';
+    let statusClass = 'status-text-pending';
+    const isPaid = inst.status === 'پرداخت شده';
+
+    if (isPaid) {
+      statusText = 'پرداخت شده';
+      statusClass = 'status-text-paid';
+    } else if (dueDate < today) {
+      statusText = 'عقب افتاده';
+      statusClass = 'status-text-overdue';
+    }
+
+    const paymentDateDisplay = inst.payment_date ? formatDatePersian(inst.payment_date) : '-';
+    const readonlyAttr = isPaid ? 'disabled title="قسط پرداخت شده قابل ویرایش نیست"' : '';
+
+    return `
+      <tr>
+        <td>${toPersianDigits(inst.installment_number)}</td>
+        <td class="amount-cell">
+          <input type="text" class="installment-amount-input" data-installment-id="${inst.id}" value="${formatNumber(inst.amount || 0)}" ${readonlyAttr}>
+        </td>
+        <td>${formatDatePersian(inst.due_date)}</td>
+        <td><span class="${statusClass}">${statusText}</span></td>
+        <td>${paymentDateDisplay}</td>
+      </tr>
+    `;
+  }).join('');
+
+  contentEl.innerHTML = `
+    <div class="table-container edit-table-container">
+      <table class="edit-installments-table">
+        <thead>
+          <tr>
+            <th>شماره</th>
+            <th>مبلغ</th>
+            <th>تاریخ سررسید</th>
+            <th>وضعیت</th>
+            <th>تاریخ پرداخت</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+    </div>
+  `;
+  setupInstallmentAmountInputs();
+}
+
+// Setup formatting for installment amount inputs
+function setupInstallmentAmountInputs() {
+  document.querySelectorAll('.installment-amount-input').forEach(input => {
+    input.addEventListener('input', handleInstallmentInputChange);
+  });
+}
+
+// Handle live redistribution after an amount change
+function handleInstallmentInputChange(event) {
+  const input = event.target;
+  const id = input.dataset.installmentId;
+  if (!id) return;
+  if (input.disabled) return;
+
+  manualEditedInstallments.add(id);
+
+  const inputs = Array.from(document.querySelectorAll('.installment-amount-input'));
+  const editable = inputs.filter(i => !i.disabled);
+
+  // Normalize current input value
+  const english = toEnglishDigits(input.value).replace(/\D/g, '');
+  const currentValue = english ? Math.max(1, parseInt(english, 10)) : 0;
+  input.value = currentValue ? toPersianDigits(currentValue.toLocaleString('fa-IR')) : '';
+
+  // Recompute totals
+  const paidSum = currentEditPaidSum;
+  let manualSum = 0;
+  const manualInputs = [];
+  const autoInputs = [];
+
+  editable.forEach(el => {
+    const eng = toEnglishDigits(el.value).replace(/\D/g, '');
+    const val = eng ? Math.max(1, parseInt(eng, 10)) : 0;
+    if (manualEditedInstallments.has(el.dataset.installmentId)) {
+      manualInputs.push({ el, val });
+      manualSum += val;
+    } else {
+      autoInputs.push({ el, val });
+    }
+  });
+
+  const targetTotal = currentEditTotalAmount || 0;
+  const remainingTarget = targetTotal - paidSum - manualSum;
+
+  if (remainingTarget < 0) {
+    showToast('مجموع مبالغ از مبلغ کل بیشتر شد. مقادیر را کاهش دهید.', 'error');
+    return;
+  }
+
+  if (autoInputs.length > 0) {
+    const per = autoInputs.length > 0 ? Math.floor(remainingTarget / autoInputs.length) : 0;
+    let remainder = remainingTarget - (per * autoInputs.length);
+    autoInputs.forEach(item => {
+      let newVal = per;
+      if (remainder > 0) {
+        newVal += 1;
+        remainder -= 1;
+      }
+      newVal = Math.max(0, newVal);
+      item.el.value = newVal ? toPersianDigits(newVal.toLocaleString('fa-IR')) : '';
+    });
+  } else {
+    // همه اقساط قابل ویرایش دستی شده‌اند؛ آخرین ورودی را تنظیم می‌کنیم تا جمع درست شود
+    const last = manualInputs[manualInputs.length - 1];
+    if (last) {
+      const adjusted = Math.max(1, last.val + remainingTarget);
+      last.el.value = toPersianDigits(adjusted.toLocaleString('fa-IR'));
+    }
+  }
+}
+
+// Save manual installment amount edits
+async function saveEditableInstallments() {
+  if (!currentEditInstallmentsLearnerId) return;
+  const container = document.querySelector('#edit-installments-content');
+  if (!container) return;
+
+  const inputs = container.querySelectorAll('.installment-amount-input');
+  if (inputs.length === 0) {
+    document.getElementById('modal-edit-installments')?.classList.remove('active');
+    return;
+  }
+
+  const updates = [];
+  for (const input of inputs) {
+    if (input.disabled) continue;
+    const raw = toEnglishDigits(input.value).replace(/\D/g, '');
+    const amount = parseInt(raw, 10);
+    if (!amount || amount <= 0) {
+      showToast('مبلغ هر قسط باید بیشتر از صفر باشد', 'error');
+      return;
+    }
+    updates.push({ id: input.dataset.installmentId, amount });
+  }
+
+  const totalFromInputs = updates.reduce((sum, u) => sum + u.amount, 0) + currentEditPaidSum;
+  if (currentEditTotalAmount && totalFromInputs !== currentEditTotalAmount) {
+    const diff = currentEditTotalAmount - totalFromInputs;
+    showToast(`مجموع اقساط با مبلغ کل برابر نیست. اختلاف: ${formatNumber(Math.abs(diff))} تومان`, 'error');
+    return;
+  }
+
+  try {
+    await Promise.all(updates.map(u => supabase
+      .from('installments')
+      .update({ amount: u.amount })
+      .eq('id', u.id)
+    ));
+
+    // Refresh learner totals based on all installments
+    const { data: allInstallments } = await supabase
+      .from('installments')
+      .select('amount')
+      .eq('learner_id', currentEditInstallmentsLearnerId);
+
+    if (allInstallments && allInstallments.length > 0) {
+      const totalAmount = allInstallments.reduce((sum, inst) => sum + (inst.amount || 0), 0);
+      const averageAmount = Math.floor(totalAmount / allInstallments.length);
+      await supabase
+        .from('learners')
+        .update({ total_amount: totalAmount, installment_amount: averageAmount })
+        .eq('id', currentEditInstallmentsLearnerId);
+    }
+
+    showToast('اقساط به‌روزرسانی شد', 'success');
+    document.getElementById('modal-edit-installments')?.classList.remove('active');
+    refreshInstallments();
+    refreshLearners();
+  } catch (error) {
+    showToast(error.message || 'خطا در ذخیره اقساط', 'error');
+  }
+}
+
 // Make functions globally available
 window.openLearnerModal = openLearnerModal;
 window.deleteLearner = deleteLearner;
 window.refreshLearners = refreshLearners;
 window.showLearnerDetails = showLearnerDetails;
 window.openReminderModal = openReminderModal;
+window.openEditInstallmentsModal = openEditInstallmentsModal;
+window.toggleLearnerActions = toggleLearnerActions;
 
 // Open reminder modal
 function openReminderModal(learnerId, learnerName, reminder = null) {
@@ -1119,13 +1415,14 @@ async function processDueReminders() {
   reminderSendInProgress = true;
   try {
     const nowIso = new Date().toISOString();
+    const fiveMinutesLaterIso = new Date(Date.now() + 5 * 60 * 1000).toISOString();
     const { data: reminders, error } = await supabase
       .from('reminders')
       .select('*')
       .eq('user_id', user.id)
       .eq('sent', false)
       .eq('completed', false)
-      .lte('reminder_at', nowIso)
+      .lte('reminder_at', fiveMinutesLaterIso)
       .order('reminder_at', { ascending: true });
 
     if (error || !reminders || reminders.length === 0) {
@@ -1133,8 +1430,13 @@ async function processDueReminders() {
       return;
     }
 
+    const userName = window.userProfile?.name || 'کاربر';
+
     for (const reminder of reminders) {
-      const reminderText = `⏰ یادآور زبان‌آموز\nنام: ${reminder.learner_name}\nزمان: ${formatDatePersian(reminder.reminder_at)} ${new Date(reminder.reminder_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}${reminder.description ? `\nتوضیحات: ${reminder.description}` : ''}`;
+      const timeStr = new Date(reminder.reminder_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+      const phoneText = reminder.phone ? `\nشماره تماس: ${reminder.phone}` : '';
+      const descText = reminder.description ? `\nتوضیحات: ${reminder.description}` : '';
+      const reminderText = `سلام ${userName} 👋\n⏰ یادآور زبان‌آموز\nنام: ${reminder.learner_name}${phoneText}\nزمان: ${formatDatePersian(reminder.reminder_at)} ${timeStr}${descText}`;
       const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

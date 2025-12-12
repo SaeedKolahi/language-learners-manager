@@ -178,12 +178,13 @@
             <th>تاریخ و ساعت</th>
             <th>توضیحات</th>
             <th>وضعیت</th>
+            <th>وضعیت ارسال</th>
             <th>عملیات</th>
           </tr>
         </thead>
         <tbody id="reminders-tbody">
           <tr>
-            <td colspan="6" class="empty-state">
+            <td colspan="7" class="empty-state">
               <p>هیچ یادآوری ثبت نشده است.</p>
             </td>
           </tr>
@@ -354,6 +355,23 @@
           <button type="button" class="btn-ghost" data-modal="modal-installment-note">انصراف</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Installments -->
+  <div class="modal" id="modal-edit-installments">
+    <div class="modal-content" style="max-width: 640px;">
+      <div class="modal-header">
+        <h2 id="edit-installments-title">ویرایش اقساط</h2>
+        <button class="modal-close" data-modal="modal-edit-installments">&times;</button>
+      </div>
+      <div id="edit-installments-content" style="padding: 10px 0;">
+        <p class="text-muted">در حال بارگذاری...</p>
+      </div>
+      <div class="toolbar" style="margin-top: 20px;">
+        <button type="button" class="btn-primary" id="btn-save-installments">ذخیره</button>
+        <button type="button" class="btn-ghost" data-modal="modal-edit-installments">انصراف</button>
+      </div>
     </div>
   </div>
 
