@@ -203,7 +203,7 @@ textarea {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 table {
@@ -561,5 +561,108 @@ td a[href^="tel:"]:hover {
   table {
     min-width: 800px;
   }
+}
+
+/* Learner actions dropdown */
+.actions-cell {
+  position: relative;
+}
+
+.action-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.action-toggle {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+.action-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  min-width: 180px;
+  display: none;
+  z-index: 50;
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.action-menu.open {
+  display: block;
+}
+
+.action-menu button {
+  width: 100%;
+  text-align: right;
+  background: transparent;
+  border: none;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.action-menu button:hover {
+  background: var(--hover);
+}
+
+.action-menu button.danger {
+  color: var(--danger);
+}
+
+/* Edit installments modal */
+.edit-table-container {
+  max-height: 420px;
+  overflow: auto;
+  border-radius: 12px;
+}
+
+.edit-installments-table th,
+.edit-installments-table td {
+  text-align: center;
+}
+
+.edit-installments-table .amount-cell {
+  min-width: 160px;
+}
+
+.installment-amount-input {
+  width: 160px;
+}
+
+.installment-amount-input[disabled] {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.status-text-paid {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.status-text-overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.status-text-pending {
+  color: var(--pending);
+  font-weight: 600;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-danger {
+  color: var(--danger);
 }
 

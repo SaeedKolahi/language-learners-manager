@@ -66,13 +66,13 @@ async function refreshReminders() {
     if (rem.completed) {
       statusText = 'تکمیل شده';
       statusClass = 'status-sold';
-    } else if (rem.sent) {
-      statusText = 'ارسال شده';
-      statusClass = 'status-about-to-buy';
     } else if (dt < now) {
       statusText = 'پیگیری نشده';
       statusClass = 'status-overdue';
     }
+
+    const sendStatusText = rem.sent ? 'ارسال شده' : 'ارسال نشده';
+    const sendStatusClass = rem.sent ? 'status-about-to-buy' : 'status-pending';
 
     const displayName = nameMap[rem.learner_id] || rem.learner_name || '';
     const phone = phoneMap[rem.learner_id] || '';
@@ -88,6 +88,7 @@ async function refreshReminders() {
       <td>${dateStr} ${timeStr}</td>
       <td class="note-cell" ${hasMore ? `data-full-note="${escapedFullDesc.replace(/"/g, '&quot;')}" style="cursor: pointer; color: var(--accent-2); text-decoration: underline;"` : ''}>${hasMore ? `${shortDesc}...` : shortDesc}</td>
       <td><span class="${statusClass}">${statusText}</span></td>
+      <td><span class="${sendStatusClass}">${sendStatusText}</span></td>
       <td>
         <button class="btn-ghost" onclick="openReminderModal('${rem.learner_id}', '${escapeHtml(displayName)}', ${serializeReminder({ ...rem, learner_name: displayName })})" style="margin-left: 4px;">پیگیری مجدد</button>
         ${rem.completed ? '' : `<button class="btn-primary" onclick="markReminderCompleted('${rem.id}')" style="margin-left: 4px;">تکمیل شد</button>`}
