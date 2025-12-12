@@ -71,9 +71,12 @@ async function refreshReminders() {
       statusClass = 'status-overdue';
     }
 
-    const sendError = (window.reminderSendErrors || {})[rem.id];
-    const sendStatusText = sendError ? 'ارسال نشده' : (rem.sent ? 'ارسال شده' : 'ارسال نشده');
-    const sendStatusClass = sendError ? 'status-overdue' : (rem.sent ? 'status-about-to-buy' : 'status-pending');
+    const rawSendError = (window.reminderSendErrors || {})[rem.id];
+    const isPastDueUnsent = !rem.sent && dt < now;
+    const sendErrorMessage = rawSendError || (isPastDueUnsent ? 'از زمان یادآور گذشته ولی پیام ارسال نشده است.' : null);
+    const sendStatusText = sendErrorMessage ? 'خطا در ارسال' : (rem.sent ? 'ارسال شده' : 'ارسال نشده');
+    const sendStatusClass = sendErrorMessage ? 'status-overdue' : (rem.sent ? 'status-about-to-buy' : 'status-pending');
+    const sendErrorEscaped = sendErrorMessage ? sendErrorMessage.replace(/'/g, "\\'").replace(/"/g, '&quot;') : '';
 
     const displayName = nameMap[rem.learner_id] || rem.learner_name || '';
     const phone = phoneMap[rem.learner_id] || '';
@@ -90,7 +93,7 @@ async function refreshReminders() {
       <td class="note-cell" ${hasMore ? `data-full-note="${escapedFullDesc.replace(/"/g, '&quot;')}" style="cursor: pointer; color: var(--accent-2); text-decoration: underline;"` : ''}>${hasMore ? `${shortDesc}...` : shortDesc}</td>
       <td><span class="${statusClass}">${statusText}</span></td>
       <td>
-        <span class="${sendStatusClass}" ${sendError ? `style="cursor:pointer;text-decoration:underline;" onclick="showSendError('${rem.id}')"` : ''}>${sendStatusText}</span>
+        <span class="${sendStatusClass}" ${sendErrorMessage ? `style="cursor:pointer;text-decoration:underline;" onclick="showSendErrorMsg('${sendErrorEscaped}')"` : ''}>${sendStatusText}</span>
       </td>
       <td>
         <button class="btn-ghost" onclick="openReminderModal('${rem.learner_id}', '${escapeHtml(displayName)}', ${serializeReminder({ ...rem, learner_name: displayName })})" style="margin-left: 4px;">پیگیری مجدد</button>
@@ -161,8 +164,13 @@ function showSendError(reminderId) {
   }
 }
 
+function showSendErrorMsg(msg) {
+  alert(msg || 'خطای ارسال یافت نشد.');
+}
+
 // Expose
 window.refreshReminders = refreshReminders;
 window.markReminderCompleted = markReminderCompleted;
 window.showSendError = showSendError;
+window.showSendErrorMsg = showSendErrorMsg;
 
