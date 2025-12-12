@@ -1403,8 +1403,6 @@ async function saveReminder() {
 
 // Send due reminders to Telegram (client-side polling)
 let reminderSendInProgress = false;
-let reminderSendErrors = {};
-window.reminderSendErrors = reminderSendErrors;
 async function processDueReminders() {
   if (reminderSendInProgress) return;
   const { data: { user } } = await supabase.auth.getUser();
@@ -1453,9 +1451,6 @@ async function processDueReminders() {
           .from('reminders')
           .update({ sent: true, sent_at: new Date().toISOString() })
           .eq('id', reminder.id);
-        delete reminderSendErrors[reminder.id];
-      } else {
-        reminderSendErrors[reminder.id] = `ارسال ناموفق (کد ${res.status})`;
       }
     }
   } catch (err) {
