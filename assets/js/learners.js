@@ -721,7 +721,7 @@ async function refreshLearners() {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${escapeHtml(learner.name)}</td>
-      <td>${learner.phone || ''}</td>
+      <td>${formatPhoneLink(learner.phone)}</td>
       <td>${learner.start_date ? formatDatePersian(learner.start_date) : ''}</td>
       <td>${learner.total_amount ? formatNumber(learner.total_amount) : ''}</td>
       <td>${learner.installment_count ? toPersianDigits(learner.installment_count) : ''}</td>
@@ -792,7 +792,7 @@ async function showLearnerDetails(learnerId) {
     html += '<h3 style="margin-top: 0; color: var(--accent-1);">اطلاعات اصلی</h3>';
     html += '<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 20px;">';
     html += `<div><strong>نام:</strong></div><div>${escapeHtml(learner.name)}</div>`;
-    html += `<div><strong>شماره تماس:</strong></div><div>${learner.phone || '-'}</div>`;
+    html += `<div><strong>شماره تماس:</strong></div><div>${learner.phone ? formatPhoneLink(learner.phone) : '-'}</div>`;
     html += `<div><strong>سن:</strong></div><div>${learner.age || '-'}</div>`;
     html += `<div><strong>سطح زبان:</strong></div><div>${learner.level || '-'}</div>`;
     html += `<div><strong>هدف یادگیری:</strong></div><div>${learner.goal || '-'}</div>`;

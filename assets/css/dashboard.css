@@ -237,6 +237,18 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
+/* Phone link styling */
+td a[href^="tel:"] {
+  color: var(--accent-2);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+td a[href^="tel:"]:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
 /* Status badges */
 .status-overdue {
   background: var(--overdue);
@@ -346,7 +358,6 @@ tbody tr:last-child td {
 .filters {
   display: flex;
   gap: 10px;
-  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 

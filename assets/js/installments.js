@@ -277,7 +277,7 @@ async function refreshInstallments() {
     row.className = rowClass;
     row.innerHTML = `
       <td>${escapeHtml(inst.learner_name || '')}</td>
-      <td>${inst.phone || ''}</td>
+      <td>${formatPhoneLink(inst.phone)}</td>
       <td>${formatNumber(inst.amount || 0)}</td>
       <td>${formatDatePersian(inst.due_date)}</td>
       <td>${formatDays(days)}</td>
@@ -342,7 +342,7 @@ async function refreshPayments() {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${escapeHtml(payment.learner_name || '')}</td>
-      <td>${payment.phone || ''}</td>
+      <td>${formatPhoneLink(payment.phone)}</td>
       <td>${formatNumber(payment.amount || 0)}</td>
       <td>${formatDatePersian(payment.due_date)}</td>
       <td>${payment.payment_date ? formatDatePersian(payment.payment_date) : ''}</td>

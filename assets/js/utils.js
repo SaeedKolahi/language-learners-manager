@@ -171,6 +171,15 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Format phone number as clickable tel: link
+function formatPhoneLink(phone) {
+  if (!phone) return '';
+  const phoneDigits = toEnglishDigits(phone).replace(/\D/g, '');
+  if (!phoneDigits) return escapeHtml(phone);
+  const displayPhone = toPersianDigits(phone);
+  return `<a href="tel:${phoneDigits}" style="color: var(--accent-2); text-decoration: none;">${escapeHtml(displayPhone)}</a>`;
+}
+
 // Show toast notification
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
