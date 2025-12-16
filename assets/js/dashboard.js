@@ -110,6 +110,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.refreshPayments) window.refreshPayments();
   if (window.refreshReminders) window.refreshReminders();
 
+  // Init custom selects ( وضعیت و فیلترها )
+  if (window.initCustomSelect) {
+    initCustomSelect('learner-status');
+    initCustomSelect('filter-learner-status');
+    initCustomSelect('filter-status');
+    initCustomSelect('filter-reminders');
+  }
+
   // Init Jalali datepicker watcher
   if (window.jalaliDatepicker) {
     window.jalaliDatepicker.startWatch();

@@ -251,6 +251,10 @@ async function refreshInstallments() {
 
   if (filtered.length === 0) {
     tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><p>نتیجه‌ای یافت نشد.</p></td></tr>';
+    const cardsContainer = document.getElementById('installments-cards');
+    if (cardsContainer) {
+      cardsContainer.innerHTML = '<div class="mobile-empty-state"><p>نتیجه‌ای یافت نشد.</p></div>';
+    }
     return;
   }
 
@@ -290,7 +294,10 @@ async function refreshInstallments() {
     `;
     tbody.appendChild(row);
   });
-  
+
+  // Generate mobile cards
+  generateInstallmentCards(filtered);
+
   // Add click listeners to note cells
   document.querySelectorAll('.note-cell[data-full-note]').forEach(cell => {
     cell.addEventListener('click', (e) => {
@@ -334,7 +341,8 @@ async function refreshPayments() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><p>هیچ پرداختی ثبت نشده است.</p></td></tr>';
+    const emptyMessage = (payments && payments.length > 0 && searchTerm) ? 'نتیجه‌ای یافت نشد.' : 'هیچ پرداختی ثبت نشده است.';
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><p>${emptyMessage}</p></td></tr>`;
     return;
   }
 
@@ -353,6 +361,9 @@ async function refreshPayments() {
     `;
     tbody.appendChild(row);
   });
+
+  // Generate mobile cards
+  generatePaymentCards(filtered);
 }
 
 // Show note tooltip
@@ -401,10 +412,130 @@ function showNoteTooltip(event, noteText) {
 }
 
 // Make functions globally available
+// Generate mobile cards for installments
+function generateInstallmentCards(installments) {
+  const cardsContainer = document.getElementById('installments-cards');
+  if (!cardsContainer) return;
+
+  cardsContainer.innerHTML = '';
+
+  if (!installments || installments.length === 0) {
+    cardsContainer.innerHTML = '<div class="mobile-empty-state"><p>هیچ قسطی وجود ندارد.</p></div>';
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  installments.forEach(inst => {
+    const dueDate = new Date(inst.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    const days = daysUntilDue(inst.due_date);
+
+    let statusText = 'در انتظار';
+    let statusClass = 'status-pending';
+    let cardClass = 'mobile-card-pending';
+
+    if (days < 0) {
+      statusText = 'عقب افتاده';
+      statusClass = 'status-overdue';
+      cardClass = 'mobile-card-overdue';
+    }
+
+
+    const card = document.createElement('div');
+    card.className = `mobile-card ${cardClass}`;
+    card.innerHTML = `
+      <div class="mobile-card-header">
+        <div>
+          <h3 class="mobile-card-title">
+            ${escapeHtml(inst.learner_name || '')}
+            ${inst.phone ? `&nbsp;&nbsp;${formatPhoneLink(inst.phone)}` : ''}
+          </h3>
+        </div>
+        <div class="mobile-card-actions">
+          <button class="btn-primary" onclick="openPaymentModal('${inst.id}')" style="font-size: 0.65rem; padding: 3px 6px;">پرداخت</button>
+          <button class="btn-ghost" onclick="openInstallmentNoteModal('${inst.id}')" style="font-size: 0.65rem; padding: 3px 6px;">${inst.installment_note ? 'ویرایش توضیحات' : 'ثبت توضیحات'}</button>
+        </div>
+      </div>
+      <div class="mobile-card-content">
+        <div class="mobile-card-stats-2">
+          <div class="mobile-card-stat-2 align-start">
+            <span class="mobile-card-label">مبلغ:</span>
+            <span class="mobile-card-value">${formatNumber(inst.amount || 0)} تومان</span>
+          </div>
+          <div class="mobile-card-stat-2 align-end">
+            <span class="mobile-card-label">تاریخ سررسید:</span>
+            <span class="mobile-card-value">${formatDatePersian(inst.due_date)}</span>
+          </div>
+        </div>
+        <div class="mobile-card-stats-2">
+          <div class="mobile-card-stat-2 align-start">
+            <span class="mobile-card-label">روزهای باقیمانده:</span>
+            <span class="mobile-card-value">${formatDays(days)}</span>
+          </div>
+          <div class="mobile-card-stat-2 align-end">
+            <span class="mobile-card-label">وضعیت:</span>
+            <span class="mobile-card-status ${statusClass}">${statusText}</span>
+          </div>
+        </div>
+      </div>
+      ${inst.installment_note ? `<div class="mobile-card-note">${escapeHtml(inst.installment_note)}</div>` : ''}
+    `;
+    cardsContainer.appendChild(card);
+  });
+}
+
 window.openPaymentModal = openPaymentModal;
 window.openInstallmentNoteModal = openInstallmentNoteModal;
 window.deletePayment = deletePayment;
 window.showNoteTooltip = showNoteTooltip;
 window.refreshInstallments = refreshInstallments;
+// Generate mobile cards for payments
+function generatePaymentCards(payments) {
+  const cardsContainer = document.getElementById('payments-cards');
+  if (!cardsContainer) return;
+
+  cardsContainer.innerHTML = '';
+
+  if (!payments || payments.length === 0) {
+    cardsContainer.innerHTML = '<div class="mobile-empty-state"><p>هیچ پرداختی ثبت نشده است.</p></div>';
+    return;
+  }
+
+  payments.forEach(payment => {
+    const card = document.createElement('div');
+    card.className = 'mobile-card mobile-card-paid';
+    card.innerHTML = `
+      <div class="mobile-card-header">
+        <div>
+          <h3 class="mobile-card-title">
+            ${escapeHtml(payment.learner_name || '')}
+            ${payment.phone ? `&nbsp;&nbsp;${formatPhoneLink(payment.phone)}` : ''}
+          </h3>
+        </div>
+        <div class="mobile-card-actions">
+          <button class="btn-danger" onclick="deletePayment('${payment.id}')" style="font-size: 0.8rem; padding: 6px 12px;">حذف</button>
+        </div>
+      </div>
+      <div class="mobile-card-content">
+        <div class="mobile-card-row"><span class="mobile-card-label">مبلغ:</span><span class="mobile-card-value">${formatNumber(payment.amount || 0)} تومان</span></div>
+        <div class="mobile-card-stats-2">
+          <div class="mobile-card-stat-2 align-start">
+            <span class="mobile-card-label">تاریخ سررسید:</span>
+            <span class="mobile-card-value">${formatDatePersian(payment.due_date)}</span>
+          </div>
+          <div class="mobile-card-stat-2 align-end">
+            <span class="mobile-card-label">تاریخ پرداخت:</span>
+            <span class="mobile-card-value">${payment.payment_date ? formatDatePersian(payment.payment_date) : ''}</span>
+          </div>
+        </div>
+      </div>
+      ${payment.installment_note ? `<div class="mobile-card-note">${escapeHtml(payment.installment_note)}</div>` : ''}
+    `;
+    cardsContainer.appendChild(card);
+  });
+}
+
 window.refreshPayments = refreshPayments;
 

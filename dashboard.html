@@ -53,6 +53,7 @@
       </div>
       <button class="btn-primary" id="btn-add-learner">افزودن زبان‌آموز</button>
     </div>
+    <div class="mobile-cards" id="learners-cards"></div>
     <div class="table-container">
       <table id="learners-table">
         <thead>
@@ -100,6 +101,7 @@
         </div>
       </div>
     </div>
+    <div class="mobile-cards" id="installments-cards"></div>
     <div class="table-container">
       <table id="installments-table">
         <thead>
@@ -133,6 +135,7 @@
         <input type="text" id="search-payments" placeholder="جستجوی نام..." style="width: 200px;">
       </div>
     </div>
+    <div class="mobile-cards" id="payments-cards"></div>
     <div class="table-container">
       <table id="payments-table">
         <thead>
@@ -169,6 +172,7 @@
         </select>
       </div>
     </div>
+    <div class="mobile-cards" id="reminders-cards"></div>
     <div class="table-container">
       <table id="reminders-table">
         <thead>
@@ -202,37 +206,29 @@
       </div>
       <form id="form-learner">
         <div class="form-group">
-          <label>نام زبان‌آموز *</label>
-          <input type="text" id="learner-name" required>
+          <input type="text" id="learner-name" required placeholder="نام زبان‌آموز *">
         </div>
         <div class="form-group">
-          <label>شماره تماس</label>
-          <input type="text" id="learner-phone" maxlength="11" pattern="[0-9]*">
+          <input type="text" id="learner-phone" maxlength="11" pattern="[0-9]*" placeholder="شماره تماس">
         </div>
         <div class="form-group">
-          <label>سن</label>
-          <input type="text" id="learner-age">
+          <input type="text" id="learner-age" placeholder="سن">
         </div>
         <div class="form-group">
-          <label>سطح زبان</label>
-          <input type="text" id="learner-level">
+          <input type="text" id="learner-level" placeholder="سطح زبان">
         </div>
         <div class="form-group">
-          <label>هدف یادگیری</label>
-          <input type="text" id="learner-goal">
+          <input type="text" id="learner-goal" placeholder="هدف یادگیری">
         </div>
         <div class="form-group">
-          <label>شغل/وضعیت تحصیلی</label>
-          <input type="text" id="learner-occupation">
+          <input type="text" id="learner-occupation" placeholder="شغل/وضعیت تحصیلی">
         </div>
         <div class="form-group">
-          <label>توضیحات تکمیلی</label>
-          <textarea id="learner-notes"></textarea>
+          <textarea id="learner-notes" placeholder="توضیحات تکمیلی"></textarea>
         </div>
         <div class="form-group">
-          <label>وضعیت</label>
-          <select id="learner-status">
-            <option value="">-- انتخاب کنید --</option>
+          <select id="learner-status" aria-label="وضعیت">
+            <option value="">-- وضعیت --</option>
             <option value="فروش رفته">فروش رفته</option>
             <option value="در شرف خرید">در شرف خرید</option>
             <option value="نیاز به پیگیری">نیاز به پیگیری</option>
@@ -246,16 +242,13 @@
         </div>
         <div id="installment-fields" style="display: none;">
           <div class="form-group">
-            <label>تاریخ شروع (مثال: 1404/09/20) *</label>
-            <input type="text" id="learner-start-date" placeholder="1404/09/20">
+            <input type="text" id="learner-start-date" placeholder="تاریخ شروع (مثال: 1404/09/20) *">
           </div>
           <div class="form-group">
-            <label>مبلغ کل (تومان) *</label>
-            <input type="text" id="learner-total-amount">
+            <input type="text" id="learner-total-amount" placeholder="مبلغ کل (تومان) *">
           </div>
           <div class="form-group">
-            <label>تعداد اقساط *</label>
-            <input type="number" id="learner-installment-count" min="1">
+            <input type="number" id="learner-installment-count" min="1" placeholder="تعداد اقساط *">
           </div>
         </div>
         <div class="toolbar" style="margin-top: 20px;">

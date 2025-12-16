@@ -14,16 +14,14 @@ async function refreshReminders() {
     .eq('user_id', user.id)
     .order('reminder_at', { ascending: true });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
+  const now = new Date();
+  const gy = now.getFullYear();
+  const gm = now.getMonth() + 1;
+  const gd = now.getDate();
+  const [jyToday, jmToday, jdToday] = gregorianToJalali(gy, gm, gd);
 
   if (filter === 'today') {
-    query = query
-      .eq('completed', false)
-      .gte('reminder_at', today.toISOString())
-      .lt('reminder_at', tomorrow.toISOString());
+    query = query.eq('completed', false);
   } else if (filter === 'completed') {
     query = query.eq('completed', true);
   } else {
@@ -50,12 +48,27 @@ async function refreshReminders() {
 
   tbody.innerHTML = '';
 
-  if (!reminders || reminders.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><p>هیچ یادآوری ثبت نشده است.</p></td></tr>';
+  let filteredReminders = reminders || [];
+  
+  if (filter === 'today') {
+    filteredReminders = filteredReminders.filter(rem => {
+      const dt = new Date(rem.reminder_at);
+      const gy = dt.getFullYear();
+      const gm = dt.getMonth() + 1;
+      const gd = dt.getDate();
+      const [jy, jm, jd] = gregorianToJalali(gy, gm, gd);
+      return jy === jyToday && jm === jmToday && jd === jdToday;
+    });
+  }
+
+  if (!filteredReminders || filteredReminders.length === 0) {
+    const emptyMessage = filter !== 'all' ? 'نتیجه‌ای یافت نشد.' : 'هیچ یادآوری ثبت نشده است.';
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><p>${emptyMessage}</p></td></tr>`;
+    generateReminderCards([], nameMap, phoneMap);
     return;
   }
 
-  reminders.forEach(rem => {
+  filteredReminders.forEach(rem => {
     const dt = new Date(rem.reminder_at);
     const dateStr = formatDatePersian(rem.reminder_at);
     const timeStr = dt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
@@ -96,6 +109,9 @@ async function refreshReminders() {
     `;
     tbody.appendChild(row);
   });
+
+  // Generate mobile cards
+  generateReminderCards(filteredReminders, nameMap, phoneMap);
 
   // Add click listeners to description cells
   document.querySelectorAll('#reminders-table .note-cell[data-full-note]').forEach(cell => {
@@ -150,6 +166,80 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Expose
+// Generate mobile cards for reminders
+function generateReminderCards(reminders, nameMap, phoneMap) {
+  const cardsContainer = document.getElementById('reminders-cards');
+  if (!cardsContainer) return;
+
+  cardsContainer.innerHTML = '';
+
+  if (!reminders || reminders.length === 0) {
+    const filter = document.getElementById('filter-reminders')?.value || 'all';
+    const emptyMessage = filter !== 'all' ? 'نتیجه‌ای یافت نشد.' : 'هیچ یادآوری ثبت نشده است.';
+    cardsContainer.innerHTML = `<div class="mobile-empty-state"><p>${emptyMessage}</p></div>`;
+    return;
+  }
+
+  reminders.forEach(rem => {
+    const dt = new Date(rem.reminder_at);
+    const dateStr = formatDatePersian(rem.reminder_at);
+    const timeStr = dt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+
+    let statusText = 'در انتظار';
+    let statusClass = 'status-pending';
+    let cardClass = 'mobile-card-pending';
+    const now = new Date();
+
+    if (rem.completed) {
+      statusText = 'تکمیل شده';
+      statusClass = 'status-sold';
+      cardClass = 'mobile-card-paid';
+    } else if (dt < now) {
+      statusText = 'پیگیری نشده';
+      statusClass = 'status-overdue';
+      cardClass = 'mobile-card-overdue';
+    }
+
+    const sendStatusText = rem.sent ? 'ارسال شده' : 'ارسال نشده';
+    const sendStatusClass = rem.sent ? 'status-about-to-buy' : 'status-pending';
+
+    const displayName = nameMap[rem.learner_id] || rem.learner_name || '';
+    const phone = phoneMap[rem.learner_id] || '';
+
+    const card = document.createElement('div');
+    card.className = `mobile-card ${cardClass}`;
+    card.innerHTML = `
+      <div class="mobile-card-header">
+        <div>
+          <h3 class="mobile-card-title">
+            ${escapeHtml(displayName)}
+            ${phone ? `&nbsp;&nbsp;${formatPhoneLink(phone)}` : ''}
+          </h3>
+        </div>
+        <div class="mobile-card-actions">
+          <button class="btn-ghost" onclick="openReminderModal('${rem.learner_id}', '${escapeHtml(displayName)}', ${serializeReminder({ ...rem, learner_name: displayName })})" style="font-size: 0.7rem; padding: 4px 8px;">پیگیری مجدد</button>
+          ${!rem.completed ? `<button class="btn-primary" onclick="markReminderCompleted('${rem.id}')" style="font-size: 0.7rem; padding: 4px 8px;">تکمیل شد</button>` : ''}
+        </div>
+      </div>
+      <div class="mobile-card-content">
+        <div class="mobile-card-row"><span class="mobile-card-label">تاریخ و ساعت:</span><span class="mobile-card-value">${dateStr} ${timeStr}</span></div>
+        <div class="mobile-card-stats-2">
+          <div class="mobile-card-stat-2 align-start">
+            <span class="mobile-card-label">وضعیت:</span>
+            <span class="mobile-card-status ${statusClass}">${statusText}</span>
+          </div>
+          <div class="mobile-card-stat-2 align-end">
+            <span class="mobile-card-label">وضعیت ارسال:</span>
+            <span class="mobile-card-status ${sendStatusClass}">${sendStatusText}</span>
+          </div>
+        </div>
+      </div>
+      ${rem.description ? `<div class="mobile-card-note">${escapeHtml(rem.description)}</div>` : ''}
+    `;
+    cardsContainer.appendChild(card);
+  });
+}
+
 window.refreshReminders = refreshReminders;
 window.markReminderCompleted = markReminderCompleted;
 

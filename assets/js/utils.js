@@ -180,6 +180,67 @@ function formatPhoneLink(phone) {
   return `<a href="tel:${phoneDigits}" style="color: var(--accent-2); text-decoration: none;">${escapeHtml(displayPhone)}</a>`;
 }
 
+// Initialize custom select (visual dropdown) while keeping native select for value
+function initCustomSelect(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  // Avoid double init
+  if (select.dataset.customized === '1') return;
+  select.dataset.customized = '1';
+
+  // Wrap select
+  const wrapper = document.createElement('div');
+  wrapper.className = 'custom-select';
+
+  const display = document.createElement('button');
+  display.type = 'button';
+  display.className = 'custom-select-display';
+  display.textContent = select.options[select.selectedIndex]?.text || '';
+
+  const list = document.createElement('div');
+  list.className = 'custom-select-options';
+
+  Array.from(select.options).forEach((opt, index) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'custom-select-option';
+    item.textContent = opt.text;
+    if (index === select.selectedIndex) {
+      item.classList.add('selected');
+    }
+    item.addEventListener('click', () => {
+      select.selectedIndex = index;
+      select.dispatchEvent(new Event('change'));
+      display.textContent = opt.text;
+      list.classList.remove('open');
+    });
+    list.appendChild(item);
+  });
+
+  // Hide native select but keep it in DOM
+  select.style.position = 'absolute';
+  select.style.opacity = '0';
+  select.style.pointerEvents = 'none';
+  select.style.width = '0';
+  select.style.height = '0';
+
+  select.parentNode.insertBefore(wrapper, select);
+  wrapper.appendChild(display);
+  wrapper.appendChild(list);
+  wrapper.appendChild(select);
+
+  display.addEventListener('click', () => {
+    list.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!wrapper.contains(e.target)) {
+      list.classList.remove('open');
+    }
+  });
+}
+
 // Show toast notification
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');

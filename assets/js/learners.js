@@ -747,6 +747,8 @@ async function refreshLearners() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  let hasFilteredResults = false;
+
   learners.forEach(learner => {
     if (searchTerm && !learner.name.toLowerCase().includes(searchTerm)) {
       return;
@@ -755,6 +757,8 @@ async function refreshLearners() {
     if (filterStatus !== 'all' && learner.status !== filterStatus) {
       return;
     }
+
+    hasFilteredResults = true;
 
     const learnerInstallments = (installments || []).filter(inst => inst.learner_id === learner.id);
     
@@ -810,6 +814,35 @@ async function refreshLearners() {
     `;
     tbody.appendChild(row);
   });
+
+  if (!hasFilteredResults && learners && learners.length > 0) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-state"><p>نتیجه‌ای یافت نشد.</p></td></tr>';
+  }
+
+  // Generate mobile cards
+  const filteredLearners = learners.filter(learner => {
+    const searchTerm = document.getElementById('search-learners')?.value.toLowerCase() || '';
+    const filterStatus = document.getElementById('filter-learner-status')?.value || 'all';
+
+    if (searchTerm && !learner.name.toLowerCase().includes(searchTerm)) {
+      return false;
+    }
+
+    if (filterStatus !== 'all' && learner.status !== filterStatus) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (filteredLearners.length === 0 && learners && learners.length > 0) {
+    const cardsContainer = document.getElementById('learners-cards');
+    if (cardsContainer) {
+      cardsContainer.innerHTML = '<div class="mobile-empty-state"><p>نتیجه‌ای یافت نشد.</p></div>';
+    }
+  } else {
+    generateLearnerCards(filteredLearners, installments);
+  }
 }
 
 // Toggle actions dropdown for learners table
@@ -840,10 +873,46 @@ function closeLearnerActionsMenu(learnerId) {
   openActionsMenuId = null;
 }
 
+// Toggle actions dropdown for mobile cards
+function toggleMobileLearnerActions(learnerId) {
+  const menuId = `mobile-learner-actions-${learnerId}`;
+  const menu = document.getElementById(menuId);
+  if (!menu) return;
+
+  if (openActionsMenuId && openActionsMenuId !== learnerId) {
+    closeMobileLearnerActionsMenu(openActionsMenuId);
+  }
+
+  const isOpen = menu.classList.contains('open');
+  if (isOpen) {
+    menu.classList.remove('open');
+    openActionsMenuId = null;
+  } else {
+    menu.classList.add('open');
+    openActionsMenuId = learnerId;
+  }
+}
+
+function closeMobileLearnerActionsMenu(learnerId) {
+  const menu = document.getElementById(`mobile-learner-actions-${learnerId}`);
+  if (menu) {
+    menu.classList.remove('open');
+  }
+  openActionsMenuId = null;
+}
+
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.action-dropdown')) {
     if (openActionsMenuId) {
-      closeLearnerActionsMenu(openActionsMenuId);
+      // Check if it's a mobile menu or desktop menu
+      const mobileMenu = document.getElementById(`mobile-learner-actions-${openActionsMenuId}`);
+      const desktopMenu = document.getElementById(`learner-actions-${openActionsMenuId}`);
+
+      if (mobileMenu) {
+        closeMobileLearnerActionsMenu(openActionsMenuId);
+      } else if (desktopMenu) {
+        closeLearnerActionsMenu(openActionsMenuId);
+      }
     }
   }
 });
@@ -932,8 +1001,8 @@ async function showLearnerDetails(learnerId) {
 
     // Installment Info
     if (learner.has_installment) {
-      html += '<h3 style="color: var(--accent-1); margin-top: 30px;">اطلاعات اقساط</h3>';
-      html += '<div style="display: flex; flex-wrap: wrap; gap: 15px 25px; margin-bottom: 20px; font-size: 0.9rem;">';
+      html += '<h3 style="color: var(--accent-1); margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border);">اطلاعات اقساط</h3>';
+      html += '<div style="display: flex; flex-wrap: wrap; gap: 15px 25px; margin-bottom: 20px; font-size: 0.8rem;">';
       html += `<span><strong>تاریخ شروع:</strong> ${learner.start_date ? formatDatePersian(learner.start_date) : '-'}</span>`;
       html += `<span><strong>مبلغ کل:</strong> ${formatNumber(learner.total_amount)} تومان</span>`;
       html += `<span><strong>تعداد اقساط:</strong> ${toPersianDigits(learner.installment_count)}</span>`;
@@ -973,8 +1042,8 @@ async function showLearnerDetails(learnerId) {
           }
         });
         
-        html += '<h3 style="color: var(--accent-1); margin-top: 20px;">آمار اقساط</h3>';
-        html += '<div style="display: flex; flex-wrap: wrap; gap: 15px 25px; margin-bottom: 20px; font-size: 0.9rem;">';
+        html += '<h3 style="color: var(--accent-1); margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">آمار اقساط</h3>';
+        html += '<div style="display: flex; flex-wrap: wrap; gap: 15px 25px; margin-bottom: 20px; font-size: 0.8rem;">';
         html += `<span><strong>اقساط پرداخت شده:</strong> ${toPersianDigits(paidCount)} قسط (${totalPaidAmount > 0 ? formatNumber(totalPaidAmount) + ' تومان' : '0 تومان'})</span>`;
         html += `<span><strong>اقساط در انتظار:</strong> ${toPersianDigits(pendingCount)} قسط (${pendingCount > 0 ? formatNumber(totalPendingAmount) + ' تومان' : '0 تومان'})</span>`;
         html += `<span><strong>اقساط عقب افتاده:</strong> ${toPersianDigits(overdueCount)} قسط (${overdueCount > 0 ? formatNumber(totalOverdueAmount) + ' تومان' : '0 تومان'})</span>`;
@@ -985,9 +1054,9 @@ async function showLearnerDetails(learnerId) {
 
       // Installments List
       if (installments && installments.length > 0) {
-        html += '<h3 style="color: var(--accent-1); margin-top: 30px;">لیست اقساط</h3>';
-        html += '<div style="overflow-x: auto; margin-bottom: 20px;">';
-        html += '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<h3 class="learner-installments-title" style="color: var(--accent-1); margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border);">لیست اقساط</h3>';
+        html += '<div class="learner-installments-container" style="overflow-x: auto; margin-bottom: 20px;">';
+        html += '<table class="learner-installments-table" style="width: 100%; border-collapse: collapse;">';
         html += '<thead><tr style="background: var(--panel);">';
         html += '<th style="padding: 10px; border: 1px solid var(--border);">شماره</th>';
         html += '<th style="padding: 10px; border: 1px solid var(--border);">مبلغ</th>';
@@ -1290,6 +1359,128 @@ async function saveEditableInstallments() {
   }
 }
 
+// Generate mobile cards for learners
+function generateLearnerCards(learners, installments) {
+  const cardsContainer = document.getElementById('learners-cards');
+  if (!cardsContainer) return;
+
+  cardsContainer.innerHTML = '';
+
+  if (!learners || learners.length === 0) {
+    cardsContainer.innerHTML = '<div class="mobile-empty-state"><p>هیچ زبان‌آموزی ثبت نشده است.</p></div>';
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  learners.forEach(learner => {
+    const learnerInstallments = (installments || []).filter(inst => inst.learner_id === learner.id);
+
+    let paidCount = 0;
+    let pendingCount = 0;
+    let overdueCount = 0;
+
+    if (learner.has_installment) {
+      learnerInstallments.forEach(inst => {
+        if (inst.status === 'پرداخت شده') {
+          paidCount++;
+        } else {
+          const dueDate = new Date(inst.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          if (dueDate < today) {
+            overdueCount++;
+          } else {
+            pendingCount++;
+          }
+        }
+      });
+    }
+
+    const status = learner.status || '';
+    const statusClass = getStatusClass(status);
+    const cardClass = overdueCount > 0 ? 'mobile-card-overdue' :
+                     pendingCount > 0 ? 'mobile-card-pending' :
+                     paidCount > 0 ? 'mobile-card-paid' : '';
+
+    const safeName = JSON.stringify(learner.name || '').replace(/"/g, '&quot;');
+    const actionsMenuId = `mobile-learner-actions-${learner.id}`;
+
+    const card = document.createElement('div');
+    card.className = `mobile-card ${cardClass}`;
+    card.innerHTML = `
+      <div class="mobile-card-header">
+        <div>
+          <h3 class="mobile-card-title">
+            ${escapeHtml(learner.name)}
+            ${learner.phone ? `&nbsp;&nbsp;${formatPhoneLink(learner.phone)}` : ''}
+          </h3>
+        </div>
+        ${status ? `<div class="mobile-card-status-inline"><span class="mobile-card-status ${statusClass}">${escapeHtml(status)}</span></div>` : ''}
+        <div class="mobile-card-actions">
+          <div class="action-dropdown">
+            <button class="btn-ghost action-toggle" onclick="toggleMobileLearnerActions('${learner.id}')">⋮</button>
+            <div class="action-menu" id="${actionsMenuId}">
+              <button onclick="openReminderModal('${learner.id}', ${safeName})">افزودن یادآور</button>
+              <button onclick="showLearnerDetails('${learner.id}')">نمایش جزئیات زبان‌آموز</button>
+              <button onclick="openLearnerModal('${learner.id}')">ویرایش زبان‌آموز</button>
+              ${learner.has_installment ? `<button onclick="openEditInstallmentsModal('${learner.id}', ${safeName})">ویرایش اقساط</button>` : ''}
+              <button class="danger" onclick="deleteLearner('${learner.id}', ${safeName})">حذف</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mobile-card-content">
+        ${learner.start_date && learner.total_amount ? `
+          <div class="mobile-card-stats-2">
+            <div class="mobile-card-stat-2 align-start">
+              <span class="mobile-card-label">تاریخ شروع</span>
+              <span class="mobile-card-value">${formatDatePersian(learner.start_date)}</span>
+            </div>
+            <div class="mobile-card-stat-2 align-end">
+              <span class="mobile-card-label">مبلغ کل</span>
+              <span class="mobile-card-value">${formatNumber(learner.total_amount)} تومان</span>
+            </div>
+          </div>
+        ` : ''}
+        ${learner.start_date && !learner.total_amount ? `<div class="mobile-card-row"><span class="mobile-card-label">تاریخ شروع:</span><span class="mobile-card-value">${formatDatePersian(learner.start_date)}</span></div>` : ''}
+        ${learner.total_amount && !learner.start_date ? `<div class="mobile-card-row"><span class="mobile-card-label">مبلغ کل:</span><span class="mobile-card-value">${formatNumber(learner.total_amount)} تومان</span></div>` : ''}
+        ${learner.installment_count && learner.installment_amount ? `
+          <div class="mobile-card-stats-2">
+            <div class="mobile-card-stat-2 align-start">
+              <span class="mobile-card-label">تعداد اقساط</span>
+              <span class="mobile-card-value">${toPersianDigits(learner.installment_count)}</span>
+            </div>
+            <div class="mobile-card-stat-2 align-end">
+              <span class="mobile-card-label">مبلغ قسط</span>
+              <span class="mobile-card-value">${formatNumber(learner.installment_amount)} تومان</span>
+            </div>
+          </div>
+        ` : ''}
+        ${learner.installment_count && !learner.installment_amount ? `<div class="mobile-card-row"><span class="mobile-card-label">تعداد اقساط:</span><span class="mobile-card-value">${toPersianDigits(learner.installment_count)}</span></div>` : ''}
+        ${learner.installment_amount && !learner.installment_count ? `<div class="mobile-card-row"><span class="mobile-card-label">مبلغ قسط:</span><span class="mobile-card-value">${formatNumber(learner.installment_amount)} تومان</span></div>` : ''}
+        ${learner.has_installment ? `
+          <div class="mobile-card-stats">
+            <div class="mobile-card-stat">
+              <span class="mobile-card-label">پرداخت شده</span>
+              <span class="mobile-card-value status-paid">${toPersianDigits(paidCount)}</span>
+            </div>
+            <div class="mobile-card-stat">
+              <span class="mobile-card-label">در انتظار</span>
+              <span class="mobile-card-value status-pending">${toPersianDigits(pendingCount)}</span>
+            </div>
+            <div class="mobile-card-stat">
+              <span class="mobile-card-label">عقب افتاده</span>
+              <span class="mobile-card-value status-overdue">${toPersianDigits(overdueCount)}</span>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+    cardsContainer.appendChild(card);
+  });
+}
+
 // Make functions globally available
 window.openLearnerModal = openLearnerModal;
 window.deleteLearner = deleteLearner;
@@ -1298,6 +1489,7 @@ window.showLearnerDetails = showLearnerDetails;
 window.openReminderModal = openReminderModal;
 window.openEditInstallmentsModal = openEditInstallmentsModal;
 window.toggleLearnerActions = toggleLearnerActions;
+window.toggleMobileLearnerActions = toggleMobileLearnerActions;
 
 // Open reminder modal
 function openReminderModal(learnerId, learnerName, reminder = null) {
@@ -1461,4 +1653,6 @@ async function processDueReminders() {
 }
 
 setInterval(processDueReminders, 60000);
+
+
 
