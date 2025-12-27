@@ -38,12 +38,96 @@ document.addEventListener('DOMContentLoaded', async () => {
     todayEl.textContent = `امروز: ${todayStr}`;
   }
 
-  // Logout button
+  // User menu dropdown
+  const userMenuBtn = document.getElementById('btn-user-menu');
+  const userMenu = document.getElementById('user-menu');
   const logoutBtn = document.getElementById('btn-logout');
+  const changePasswordBtn = document.getElementById('btn-change-password');
+
+  if (userMenuBtn && userMenu) {
+    userMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userMenu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
+        userMenu.classList.remove('open');
+      }
+    });
+  }
+
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
       await supabase.auth.signOut();
       window.location.href = 'index.html';
+    });
+  }
+
+  if (changePasswordBtn) {
+    changePasswordBtn.addEventListener('click', () => {
+      const modal = document.getElementById('modal-change-password');
+      if (modal) {
+        userMenu.classList.remove('open');
+        modal.classList.add('active');
+        document.getElementById('form-change-password').reset();
+        document.getElementById('change-password-error').style.display = 'none';
+        document.getElementById('change-password-success').style.display = 'none';
+      }
+    });
+  }
+
+  // Change password form
+  const changePasswordForm = document.getElementById('form-change-password');
+  if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById('change-password-error');
+      const successEl = document.getElementById('change-password-success');
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+
+      if (newPassword.length < 6) {
+        errorEl.textContent = 'رمز عبور جدید باید حداقل 6 کاراکتر باشد';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        errorEl.textContent = 'رمز عبور جدید و تکرار آن یکسان نیستند';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        errorEl.textContent = 'کاربر یافت نشد';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (updateError) {
+        errorEl.textContent = updateError.message || 'خطا در تغییر پسورد';
+        errorEl.style.display = 'block';
+      } else {
+        successEl.textContent = 'رمز عبور با موفقیت تغییر یافت';
+        successEl.style.display = 'block';
+        changePasswordForm.reset();
+        setTimeout(() => {
+          const modal = document.getElementById('modal-change-password');
+          if (modal) {
+            modal.classList.remove('active');
+          }
+        }, 2000);
+      }
     });
   }
 

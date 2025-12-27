@@ -60,6 +60,71 @@ body {
   grid-column: 3;
 }
 
+/* User Menu Dropdown */
+.user-menu-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.user-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  min-width: auto;
+  width: 36px;
+  height: 36px;
+}
+
+.user-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.user-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  min-width: 160px;
+  display: none;
+  z-index: 100;
+  margin-top: 8px;
+}
+
+.user-menu.open {
+  display: block;
+}
+
+.user-menu-item {
+  width: 100%;
+  text-align: right;
+  background: transparent;
+  border: none;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text);
+  transition: background 0.2s;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-menu-item:last-child {
+  border-bottom: none;
+}
+
+.user-menu-item:hover {
+  background: var(--hover, rgba(255, 255, 255, 0.05));
+}
+
+.user-menu-item-danger {
+  color: var(--danger);
+}
+
 /* Tabs */
 .tabs {
   display: flex;
@@ -455,6 +520,20 @@ td a[href^="tel:"]:hover {
 
 .modal-close:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.modal .error {
+  color: var(--danger);
+  min-height: 20px;
+  font-size: 0.9rem;
+  padding: 8px 0;
+}
+
+.modal .success {
+  color: var(--accent);
+  min-height: 20px;
+  font-size: 0.9rem;
+  padding: 8px 0;
 }
 
 /* Filters */
@@ -1051,6 +1130,27 @@ td a[href^="tel:"]:hover {
     padding: 6px 10px;
     font-size: 0.8rem;
     min-height: auto;
+  }
+
+  .user-icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+  }
+
+  .user-icon-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .user-menu {
+    min-width: 140px;
+    margin-top: 6px;
+  }
+
+  .user-menu-item {
+    padding: 8px 12px;
+    font-size: 0.85rem;
   }
 
   .tabs {
