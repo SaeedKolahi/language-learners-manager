@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
   name TEXT NOT NULL,
   chat_id TEXT,
-  telegram_token TEXT DEFAULT 'REMOVED_TELEGRAM_TOKEN',
+  telegram_token TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

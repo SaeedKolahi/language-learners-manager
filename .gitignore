@@ -4,6 +4,9 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Supabase Edge Functions 
+supabase/functions/
+
 
 
 

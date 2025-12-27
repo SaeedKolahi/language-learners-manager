@@ -29,11 +29,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       greetingEl.textContent = `سلام ${userName}!👋`;
     }
 
-    // Show create user button only for admin
-    const ADMIN_UID = 'REMOVED_ADMIN_UID';
+    // Check if user is admin
     const createUserBtn = document.getElementById('btn-create-user');
-    if (createUserBtn && user.id === ADMIN_UID) {
-      createUserBtn.style.display = 'block';
+    if (createUserBtn) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/check-admin`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'apikey': SUPABASE_CONFIG.anonKey,
+            },
+          });
+          const result = await response.json();
+          if (result.isAdmin) {
+            createUserBtn.style.display = 'block';
+          }
+        }
+      } catch (error) {
+        // Silently fail - user is not admin
+      }
     }
   }
 

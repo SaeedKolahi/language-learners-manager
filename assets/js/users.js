@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const createUserSuccess = document.getElementById('create-user-success');
 
   if (createUserBtn) {
-    createUserBtn.addEventListener('click', () => {
+    createUserBtn.addEventListener('click', async () => {
       if (createUserModal) {
         createUserModal.classList.add('active');
         if (createUserForm) createUserForm.reset();
@@ -22,9 +22,26 @@ document.addEventListener('DOMContentLoaded', async () => {
           createUserSuccess.style.display = 'none';
           createUserSuccess.textContent = '';
         }
-        const telegramTokenInput = document.getElementById('new-user-telegram-token');
-        if (telegramTokenInput) {
-          telegramTokenInput.value = 'REMOVED_TELEGRAM_TOKEN';
+        
+        // Load admin telegram token
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/get-admin-token`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'apikey': SUPABASE_CONFIG.anonKey,
+              },
+            });
+            const result = await response.json();
+            const telegramTokenInput = document.getElementById('new-user-telegram-token');
+            if (telegramTokenInput && result.telegramToken) {
+              telegramTokenInput.value = result.telegramToken;
+            }
+          }
+        } catch (error) {
+          // Silently fail
         }
       }
     });
@@ -88,7 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             password,
             name,
             chat_id: chatId || null,
-            telegram_token: telegramToken || 'REMOVED_TELEGRAM_TOKEN',
+            telegram_token: telegramToken || null,
           }),
         });
 
@@ -104,9 +121,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         createUserForm.reset();
-        const telegramTokenInput = document.getElementById('new-user-telegram-token');
-        if (telegramTokenInput) {
-          telegramTokenInput.value = 'REMOVED_TELEGRAM_TOKEN';
+        
+        // Reload admin telegram token
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const tokenResponse = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/get-admin-token`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'apikey': SUPABASE_CONFIG.anonKey,
+              },
+            });
+            const tokenResult = await tokenResponse.json();
+            const telegramTokenInput = document.getElementById('new-user-telegram-token');
+            if (telegramTokenInput && tokenResult.telegramToken) {
+              telegramTokenInput.value = tokenResult.telegramToken;
+            }
+          }
+        } catch (error) {
+          // Silently fail
         }
 
         setTimeout(() => {
