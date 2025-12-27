@@ -28,6 +28,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (greetingEl) {
       greetingEl.textContent = `سلام ${userName}!👋`;
     }
+
+    // Show create user button only for admin
+    const ADMIN_UID = 'REMOVED_ADMIN_UID';
+    const createUserBtn = document.getElementById('btn-create-user');
+    if (createUserBtn && user.id === ADMIN_UID) {
+      createUserBtn.style.display = 'block';
+    }
   }
 
   // Set today's date

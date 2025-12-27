@@ -28,6 +28,7 @@
           </svg>
         </button>
         <div class="user-menu" id="user-menu">
+          <button class="user-menu-item" id="btn-create-user" style="display: none;">ایجاد کاربر جدید</button>
           <button class="user-menu-item" id="btn-change-password">تغییر رمز عبور</button>
           <button class="user-menu-item user-menu-item-danger" id="btn-logout">خروج</button>
         </div>
@@ -392,6 +393,44 @@
     </div>
   </div>
 
+  <!-- Modal: Create User -->
+  <div class="modal" id="modal-create-user">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>ایجاد کاربر جدید</h2>
+        <button class="modal-close" data-modal="modal-create-user">&times;</button>
+      </div>
+      <form id="form-create-user">
+        <div class="form-group">
+          <label>ایمیل *</label>
+          <input type="email" id="new-user-email" required placeholder="example@email.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>رمز عبور *</label>
+          <input type="password" id="new-user-password" required placeholder="حداقل 6 کاراکتر" autocomplete="new-password" minlength="6">
+        </div>
+        <div class="form-group">
+          <label>نام *</label>
+          <input type="text" id="new-user-name" required placeholder="نام کاربر">
+        </div>
+        <div class="form-group">
+          <label>چت ایدی (اختیاری)</label>
+          <input type="text" id="new-user-chat-id" placeholder="چت ایدی تلگرام">
+        </div>
+        <div class="form-group">
+          <label>تلگرام توکن</label>
+          <input type="text" id="new-user-telegram-token" placeholder="REMOVED_TELEGRAM_TOKEN" value="REMOVED_TELEGRAM_TOKEN">
+        </div>
+        <div class="error" id="create-user-error" style="display: none;"></div>
+        <div class="success" id="create-user-success" style="display: none;"></div>
+        <div class="toolbar" style="margin-top: 20px;">
+          <button type="submit" class="btn-primary">ایجاد کاربر</button>
+          <button type="button" class="btn-ghost" data-modal="modal-create-user">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal: Change Password -->
   <div class="modal" id="modal-change-password">
     <div class="modal-content">
@@ -424,6 +463,7 @@
 
   <script src="assets/js/utils.js"></script>
   <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/users.js"></script>
   <script src="assets/js/learners.js"></script>
   <script src="assets/js/installments.js"></script>
   <script src="assets/js/reminders.js"></script>
